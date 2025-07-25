@@ -1,7 +1,7 @@
 "use client";
 
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import { Icon } from "leaflet";
+import { Icon, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Image from "next/image";
 
@@ -25,6 +25,7 @@ interface Props {
   actuadores: Actuador[];
 }
 
+// 🟢 Íconos Leaflet
 const iconOnline = new Icon({
   iconUrl: "/icons/online.svg",
   iconSize: [25, 25],
@@ -36,69 +37,77 @@ const iconOffline = new Icon({
 });
 
 export default function MapView({ actuadores }: Props) {
+  const initialCenter: LatLngExpression = [-2.154, -79.9];
+
   return (
     <div className="h-[500px] rounded shadow overflow-hidden z-0">
       <MapContainer
-        center={[-2.154, -79.9]} // centro inicial
+        center={initialCenter}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          attribution="&copy; OpenStreetMap"
+          attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {actuadores.map((act) => (
-          <Marker
-            key={act.id}
-            position={[act.latitud, act.longitud]}
-            icon={act.estado === "online" ? iconOnline : iconOffline}
-          >
-            <Popup>
-              <div className="text-sm">
-                <strong>{act.alias}</strong>
-                <br />
-                Estado:{" "}
-                <span
-                  className={
-                    act.estado === "online" ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  {act.estado}
-                </span>
-                <br />
-                Gateway:{" "}
-                <span
-                  className={
-                    act.gateway.estado === "ok"
-                      ? "text-green-600"
-                      : act.gateway.estado === "reiniciando"
-                      ? "text-yellow-600"
-                      : "text-red-600"
-                  }
-                >
-                  {act.gateway.estado}
-                </span>
-                <br />
-                <div className="mt-2 flex items-center gap-2">
-                  <Image
-                    src={
-                      act.relayEncendido
-                        ? "/icons/relay-on.svg"
-                        : "/icons/relay-off.svg"
+        {actuadores.map((act) => {
+          const markerPos: LatLngExpression = [act.latitud, act.longitud];
+
+          return (
+            <Marker
+              key={act.id}
+              position={markerPos}
+              icon={act.estado === "online" ? iconOnline : iconOffline}
+            >
+              <Popup>
+                <div className="text-sm">
+                  <strong>{act.alias}</strong>
+                  <br />
+                  Estado:{" "}
+                  <span
+                    className={
+                      act.estado === "online"
+                        ? "text-green-600"
+                        : "text-red-600"
                     }
-                    alt="Relé"
-                    width={20}
-                    height={20}
-                    className={act.relayEncendido ? "pulse" : "opacity-70"}
-                  />
-                  <span>
-                    Relé: {act.relayEncendido ? "Encendido" : "Apagado"}
+                  >
+                    {act.estado}
                   </span>
+                  <br />
+                  Gateway:{" "}
+                  <span
+                    className={
+                      act.gateway.estado === "ok"
+                        ? "text-green-600"
+                        : act.gateway.estado === "reiniciando"
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {act.gateway.estado}
+                  </span>
+                  <br />
+                  <div className="mt-2 flex items-center gap-2">
+                    <Image
+                      src={
+                        act.relayEncendido
+                          ? "/icons/relay-on.svg"
+                          : "/icons/relay-off.svg"
+                      }
+                      alt="Relé"
+                      width={20}
+                      height={20}
+                      className={act.relayEncendido ? "pulse" : "opacity-70"}
+                    />
+                    <span>
+                      Relé: {act.relayEncendido ? "Encendido" : "Apagado"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );

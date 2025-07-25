@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import socket from "@/lib/socket";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import GroupToggle from "@/components/GroupToggle";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -144,6 +145,13 @@ export default function DashboardPage() {
           </li>
         ))}
       </ul>
+      <GroupToggle
+        onToggleGroup={(ids) => {
+          // Llamado en caso de integración real
+          console.log("Actuadores a alternar:", ids);
+        }}
+      />
+
       <MapView actuadores={actuadores} />
     </main>
   );
