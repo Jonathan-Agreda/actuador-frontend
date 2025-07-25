@@ -6,7 +6,10 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import GroupToggle from "@/components/GroupToggle";
 
-const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
+const MapView = dynamic(() => import("@/components/MapView"), {
+  ssr: false,
+  loading: () => <div className="text-center p-4">Cargando mapa...</div>,
+});
 
 interface Gateway {
   ip: string;

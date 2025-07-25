@@ -1,9 +1,10 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Icon, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Image from "next/image";
+import { useEffect } from "react";
 
 interface Gateway {
   ip: string;
@@ -25,16 +26,26 @@ interface Props {
   actuadores: Actuador[];
 }
 
-// 🟢 Íconos Leaflet
+// 🟢 Íconos
 const iconOnline = new Icon({
   iconUrl: "/icons/online.svg",
   iconSize: [25, 25],
 });
-
 const iconOffline = new Icon({
   iconUrl: "/icons/offline.svg",
   iconSize: [25, 25],
 });
+
+// 🔁 Forzar redimensionamiento del mapa
+function ResizeMapOnDataChange({ trigger }: { trigger: any }) {
+  const map = useMap();
+  useEffect(() => {
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100); // leve delay para esperar DOM layout
+  }, [trigger, map]);
+  return null;
+}
 
 export default function MapView({ actuadores }: Props) {
   const initialCenter: LatLngExpression = [-2.154, -79.9];
@@ -46,6 +57,7 @@ export default function MapView({ actuadores }: Props) {
         zoom={13}
         style={{ height: "100%", width: "100%" }}
       >
+        <ResizeMapOnDataChange trigger={actuadores.length} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
