@@ -40,7 +40,7 @@ export default function MapView({ actuadores }: Props) {
   const initialCenter: LatLngExpression = [-2.154, -79.9];
 
   return (
-    <div className="h-[500px] rounded shadow overflow-hidden z-0">
+    <div className="h-full rounded shadow overflow-hidden z-0">
       <MapContainer
         center={initialCenter}
         zoom={13}
