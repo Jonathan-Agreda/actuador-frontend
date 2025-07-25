@@ -1,7 +1,7 @@
 "use client";
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import { Icon, LatLngExpression } from "leaflet";
+import L, { DivIcon, LatLngExpression, Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Image from "next/image";
 import { useEffect } from "react";
@@ -26,23 +26,25 @@ interface Props {
   actuadores: Actuador[];
 }
 
-// 🟢 Íconos
+// ✅ Íconos
 const iconOnline = new Icon({
   iconUrl: "/icons/online.svg",
   iconSize: [25, 25],
 });
-const iconOffline = new Icon({
-  iconUrl: "/icons/offline.svg",
+
+const iconOffline: DivIcon = new L.DivIcon({
+  className: "custom-marker blinking",
+  html: `<img src="/icons/offline.svg" class="w-[25px] h-[25px]" />`,
   iconSize: [25, 25],
 });
 
 // 🔁 Forzar redimensionamiento del mapa
-function ResizeMapOnDataChange({ trigger }: { trigger: any }) {
+function ResizeMapOnDataChange({ trigger }: { trigger: number }) {
   const map = useMap();
   useEffect(() => {
     setTimeout(() => {
       map.invalidateSize();
-    }, 100); // leve delay para esperar DOM layout
+    }, 100);
   }, [trigger, map]);
   return null;
 }
