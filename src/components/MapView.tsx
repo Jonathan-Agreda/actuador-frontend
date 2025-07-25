@@ -1,10 +1,10 @@
 "use client";
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L, { DivIcon, LatLngExpression, Icon } from "leaflet";
+import L, { DivIcon, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Gateway {
   ip: string;
@@ -26,17 +26,21 @@ interface Props {
   actuadores: Actuador[];
 }
 
-// ✅ Íconos
-const iconOnline = new Icon({
-  iconUrl: "/icons/online.svg",
-  iconSize: [25, 25],
-});
-
-const iconOffline: DivIcon = new L.DivIcon({
-  className: "custom-marker blinking",
-  html: `<img src="/icons/offline.svg" class="w-[25px] h-[25px]" />`,
-  iconSize: [25, 25],
-});
+// ✅ Ícono dinámico con alias arriba
+const getCustomIcon = (alias: string, estado: "online" | "offline"): DivIcon =>
+  new L.DivIcon({
+    className: "custom-marker",
+    html: `
+      <div class="marker-label-container">
+        <div class="marker-label">${alias}</div>
+        <div class="${estado === "offline" ? "blinking-wrapper" : ""}">
+          <img src="/icons/${estado}.svg" class="w-[25px] h-[25px]" />
+        </div>
+      </div>
+    `,
+    iconSize: [25, 40],
+    iconAnchor: [12.5, 25],
+  });
 
 // 🔁 Forzar redimensionamiento del mapa
 function ResizeMapOnDataChange({ trigger }: { trigger: number }) {
@@ -51,6 +55,49 @@ function ResizeMapOnDataChange({ trigger }: { trigger: number }) {
 
 export default function MapView({ actuadores }: Props) {
   const initialCenter: LatLngExpression = [-2.154, -79.9];
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [readyToPlay, setReadyToPlay] = useState(false);
+  const lastAlertRef = useRef<number>(0); // ⏱️ Última alerta sonora
+
+  // 🎧 Preload sonido
+  useEffect(() => {
+    audioRef.current = new Audio("/sounds/alert.mp3");
+    audioRef.current.loop = false;
+
+    const handleClick = () => {
+      audioRef.current?.play().then(() => {
+        audioRef.current?.pause();
+        setReadyToPlay(true);
+      });
+      navigator.vibrate?.(100);
+      document.removeEventListener("click", handleClick);
+    };
+
+    document.addEventListener("click", handleClick);
+    return () => {
+      document.removeEventListener("click", handleClick);
+    };
+  }, []);
+
+  // 🔊 Alerta inteligente (no repetir en bucle)
+  useEffect(() => {
+    if (!readyToPlay || actuadores.length === 0) return;
+
+    const hayOffline = actuadores.some((a) => a.estado === "offline");
+
+    if (hayOffline) {
+      const now = Date.now();
+      const elapsed = now - lastAlertRef.current;
+
+      if (elapsed > 15000) {
+        lastAlertRef.current = now;
+        audioRef.current?.play().catch(() => {});
+        navigator.vibrate?.([300, 100, 300]);
+      }
+    } else {
+      lastAlertRef.current = 0;
+    }
+  }, [actuadores, readyToPlay]);
 
   return (
     <div className="h-full rounded shadow overflow-hidden z-0">
@@ -66,15 +113,18 @@ export default function MapView({ actuadores }: Props) {
         />
         {actuadores.map((act) => {
           const markerPos: LatLngExpression = [act.latitud, act.longitud];
-
           return (
             <Marker
               key={act.id}
               position={markerPos}
-              icon={act.estado === "online" ? iconOnline : iconOffline}
+              icon={getCustomIcon(act.alias, act.estado)}
             >
               <Popup>
-                <div className="text-sm">
+                <div
+                  className={`text-sm p-2 rounded shadow ${
+                    act.estado === "offline" ? "border border-red-500" : ""
+                  }`}
+                >
                   <strong>{act.alias}</strong>
                   <br />
                   Estado:{" "}
