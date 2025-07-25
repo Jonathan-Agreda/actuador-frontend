@@ -5,6 +5,7 @@ import L, { DivIcon, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { Bell, BellOff } from "lucide-react";
 
 interface Gateway {
   ip: string;
@@ -26,7 +27,6 @@ interface Props {
   actuadores: Actuador[];
 }
 
-// ✅ Ícono dinámico con alias arriba
 const getCustomIcon = (alias: string, estado: "online" | "offline"): DivIcon =>
   new L.DivIcon({
     className: "custom-marker",
@@ -42,7 +42,6 @@ const getCustomIcon = (alias: string, estado: "online" | "offline"): DivIcon =>
     iconAnchor: [12.5, 25],
   });
 
-// 🔁 Forzar redimensionamiento del mapa
 function ResizeMapOnDataChange({ trigger }: { trigger: number }) {
   const map = useMap();
   useEffect(() => {
@@ -57,9 +56,22 @@ export default function MapView({ actuadores }: Props) {
   const initialCenter: LatLngExpression = [-2.154, -79.9];
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [readyToPlay, setReadyToPlay] = useState(false);
-  const lastAlertRef = useRef<number>(0); // ⏱️ Última alerta sonora
+  const [muted, setMuted] = useState(false);
+  const lastAlertRef = useRef<number>(0);
+  const cantidadOffline = actuadores.filter(
+    (a) => a.estado === "offline"
+  ).length;
 
-  // 🎧 Preload sonido
+  // 🟡 Solicita permiso de notificación si existe API
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission !== "granted") {
+        Notification.requestPermission().catch(() => {});
+      }
+    }
+  }, []);
+
+  // 🔊 Preload sonido
   useEffect(() => {
     audioRef.current = new Audio("/sounds/alert.mp3");
     audioRef.current.loop = false;
@@ -79,12 +91,11 @@ export default function MapView({ actuadores }: Props) {
     };
   }, []);
 
-  // 🔊 Alerta inteligente (no repetir en bucle)
+  // 🚨 Alertas: sonido, vibración, notificación (protegido)
   useEffect(() => {
-    if (!readyToPlay || actuadores.length === 0) return;
+    if (!readyToPlay || actuadores.length === 0 || muted) return;
 
-    const hayOffline = actuadores.some((a) => a.estado === "offline");
-
+    const hayOffline = cantidadOffline > 0;
     if (hayOffline) {
       const now = Date.now();
       const elapsed = now - lastAlertRef.current;
@@ -93,14 +104,46 @@ export default function MapView({ actuadores }: Props) {
         lastAlertRef.current = now;
         audioRef.current?.play().catch(() => {});
         navigator.vibrate?.([300, 100, 300]);
+
+        // ✅ Solo si existe y está permitido
+        if (typeof window !== "undefined" && "Notification" in window) {
+          if (Notification.permission === "granted") {
+            new Notification("¡Alerta Lora!", {
+              body: `Hay ${cantidadOffline} Lora${
+                cantidadOffline > 1 ? "s" : ""
+              } en estado offline.`,
+              icon: "/icons/offline.svg",
+            });
+          }
+        }
       }
     } else {
       lastAlertRef.current = 0;
     }
-  }, [actuadores, readyToPlay]);
+  }, [actuadores, readyToPlay, muted]);
 
   return (
-    <div className="h-full rounded shadow overflow-hidden z-0">
+    <div className="w-full h-full min-h-[300px] rounded shadow overflow-hidden z-0 relative">
+      {/* 🔔 Botón sonido + contador */}
+      <div className="absolute top-2 right-2 z-[999]">
+        <button
+          onClick={() => setMuted(!muted)}
+          className={`relative rounded-full p-2 shadow-lg transition-colors duration-200 ${
+            muted
+              ? "bg-red-600 hover:bg-red-700"
+              : "bg-green-600 hover:bg-green-700"
+          } text-white`}
+          title={muted ? "Sonido desactivado" : "Sonido activado"}
+        >
+          {muted ? <BellOff size={20} /> : <Bell size={20} />}
+          {cantidadOffline > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 rounded-full border border-white">
+              {cantidadOffline}
+            </span>
+          )}
+        </button>
+      </div>
+
       <MapContainer
         center={initialCenter}
         zoom={13}

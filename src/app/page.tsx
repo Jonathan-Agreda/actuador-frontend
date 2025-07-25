@@ -85,7 +85,7 @@ export default function DashboardPage() {
                     setLoadingId(act.id);
                     try {
                       const res = await fetch(
-                        `http://localhost:4000/api/actuadores/${act.id}/toggle`,
+                        `${process.env.NEXT_PUBLIC_API_WS_URL}/api/actuadores/${act.id}/toggle`,
                         {
                           method: "POST",
                         }
@@ -166,10 +166,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Panel derecho con mapa que se estira a la altura del contenido izquierdo */}
-        <div className="lg:w-1/2 h-auto lg:h-auto">
-          <div className="h-full">
-            <MapView actuadores={actuadores} />
-          </div>
+        <div className="lg:w-1/2 w-full h-[300px] lg:h-auto">
+          <MapView actuadores={actuadores} />
         </div>
       </div>
     </main>

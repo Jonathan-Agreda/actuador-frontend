@@ -25,7 +25,7 @@ export default function GroupToggle({ onToggleGroup }: Props) {
                   await Promise.all(
                     grupo.actuadores.map((id) =>
                       fetch(
-                        `http://localhost:4000/api/actuadores/${id}/toggle`,
+                        `${process.env.NEXT_PUBLIC_API_WS_URL}/api/actuadores/${id}/toggle`,
                         {
                           method: "POST",
                         }
