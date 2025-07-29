@@ -41,57 +41,55 @@ const createCustomIcon = (
   estadoGateway: boolean,
   motorEncendido: boolean,
   gatewayAlias: string
-): L.DivIcon => {
+): DivIcon => {
+  const bordeCritico = estado === "offline" || !estadoGateway;
+
   return new L.DivIcon({
     className: "custom-marker",
     html: `
-  <div style="
-    background: white;
-    border-radius: 10px;
-    padding: 6px 8px;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    text-align: center;
-    filter: drop-shadow(0 0 3px rgba(0,0,0,0.15));
-  ">
-    <div style="font-weight: 600; font-size: 12px;">${alias}</div>
-
-    <img src="${getLoraIcon(estado)}"
-      style="width: 32px; height: 32px; margin: 4px auto; filter: drop-shadow(0 0 2px rgba(0,0,0,0.25));" />
-
-    <div style="
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      margin-top: 6px;
-    ">
       <div style="
-        background: rgba(255, 255, 255, 0.8);
-        border-radius: 6px;
-        padding: 3px;
-        box-shadow: 0 0 1px rgba(0,0,0,0.3);
+        background: white;
+        border-radius: 10px;
+        padding: 6px 8px;
+        border: 2px solid ${bordeCritico ? "#dc2626" : "#ccc"};
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        text-align: center;
+        filter: drop-shadow(0 0 3px rgba(0,0,0,0.15));
       ">
-        <img src="${getGatewayIcon(estadoGateway)}" title="Gateway"
-          style="width: 26px; height: 26px;" />
+        <div style="font-weight: 600; font-size: 12px;">${alias}</div>
+        <img src="${getLoraIcon(estado)}"
+          style="width: 32px; height: 32px; margin: 4px auto; filter: drop-shadow(0 0 2px rgba(0,0,0,0.25));" />
+        <div style="
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 8px;
+          margin-top: 6px;
+        ">
+          <div style="
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 6px;
+            padding: 3px;
+            box-shadow: 0 0 1px rgba(0,0,0,0.3);
+          ">
+            <img src="${getGatewayIcon(estadoGateway)}" title="Gateway"
+              style="width: 26px; height: 26px;" />
+          </div>
+          <div style="
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 6px;
+            padding: 3px;
+            box-shadow: 0 0 1px rgba(0,0,0,0.3);
+          ">
+            <img src="${getMotorIcon(motorEncendido)}" title="Motor"
+              style="width: 26px; height: 26px;" />
+          </div>
+        </div>
+        <div style="font-size: 10px; color: #444; font-weight: 500; margin-top: 4px;">
+          ${gatewayAlias}
+        </div>
       </div>
-
-      <div style="
-        background: rgba(255, 255, 255, 0.8);
-        border-radius: 6px;
-        padding: 3px;
-        box-shadow: 0 0 1px rgba(0,0,0,0.3);
-      ">
-        <img src="${getMotorIcon(motorEncendido)}" title="Motor"
-          style="width: 26px; height: 26px;" />
-      </div>
-    </div>
-
-    <div style="font-size: 10px; color: #444; font-weight: 500; margin-top: 4px;">
-      ${gatewayAlias}
-    </div>
-  </div>
-  `,
+    `,
     iconSize: [60, 80],
     iconAnchor: [30, 40],
   });
@@ -113,9 +111,15 @@ export default function MapView({ actuadores }: Props) {
   const [readyToPlay, setReadyToPlay] = useState(false);
   const [muted, setMuted] = useState(false);
   const lastAlertRef = useRef<number>(0);
-  const cantidadOffline = actuadores.filter(
+
+  const cantidadLorasOffline = actuadores.filter(
     (a) => a.estado === "offline"
   ).length;
+  const cantidadGatewaysOffline = actuadores.filter(
+    (a) => !a.estadoGateway
+  ).length;
+
+  const hayOffline = cantidadLorasOffline > 0 || cantidadGatewaysOffline > 0;
 
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
@@ -147,7 +151,6 @@ export default function MapView({ actuadores }: Props) {
   useEffect(() => {
     if (!readyToPlay || actuadores.length === 0 || muted) return;
 
-    const hayOffline = cantidadOffline > 0;
     if (hayOffline) {
       const now = Date.now();
       const elapsed = now - lastAlertRef.current;
@@ -158,10 +161,8 @@ export default function MapView({ actuadores }: Props) {
         navigator.vibrate?.([300, 100, 300]);
 
         if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("¡Alerta Lora!", {
-            body: `Hay ${cantidadOffline} Lora${
-              cantidadOffline > 1 ? "s" : ""
-            } en estado offline.`,
+          new Notification("¡Alerta!", {
+            body: `Loras offline: ${cantidadLorasOffline}, Gateways offline: ${cantidadGatewaysOffline}`,
             icon: "/icons/offline.svg",
           });
         }
@@ -173,25 +174,46 @@ export default function MapView({ actuadores }: Props) {
 
   return (
     <div className="w-full h-full min-h-[300px] rounded shadow overflow-hidden z-0 relative">
+      {/* Botón de alarma con tooltip */}
       <div className="absolute top-2 right-2 z-[999]">
-        <button
-          onClick={() => setMuted(!muted)}
-          className={`relative rounded-full p-2 shadow-lg transition-colors duration-200 ${
-            muted
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-green-600 hover:bg-green-700"
-          } text-white`}
-          title={muted ? "Sonido desactivado" : "Sonido activado"}
-        >
-          {muted ? <BellOff size={20} /> : <Bell size={20} />}
-          {cantidadOffline > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 rounded-full border border-white">
-              {cantidadOffline}
-            </span>
+        <div className="relative group">
+          <button
+            onClick={() => setMuted(!muted)}
+            className={`relative rounded-full p-2 shadow-lg transition-colors duration-200 ${
+              muted
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-green-600 hover:bg-green-700"
+            } text-white`}
+          >
+            {muted ? <BellOff size={20} /> : <Bell size={20} />}
+            {hayOffline && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 rounded-full border border-white">
+                {cantidadLorasOffline + cantidadGatewaysOffline}
+              </span>
+            )}
+          </button>
+
+          {/* Tooltip visual */}
+          {hayOffline && (
+            <div className="absolute top-12 right-0 bg-white text-gray-800 text-xs shadow-md rounded px-3 py-2 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap border border-gray-300">
+              <p>
+                Loras offline:{" "}
+                <span className="text-red-600 font-bold">
+                  {cantidadLorasOffline}
+                </span>
+              </p>
+              <p>
+                Gateways offline:{" "}
+                <span className="text-red-600 font-bold">
+                  {cantidadGatewaysOffline}
+                </span>
+              </p>
+            </div>
           )}
-        </button>
+        </div>
       </div>
 
+      {/* Mapa */}
       <MapContainer
         center={initialCenter}
         zoom={14}

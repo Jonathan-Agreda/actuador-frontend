@@ -50,9 +50,13 @@ export default function LoraCard({
 }: Props) {
   const [hovered, setHovered] = useState(false);
 
+  const bordeRojo = estado === "offline" || gateway.estado === "caido";
+
   return (
     <div
-      className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-all space-y-2"
+      className={`p-4 bg-white rounded-lg shadow hover:shadow-md transition-all space-y-2 border ${
+        bordeRojo ? "border-red-500" : "border-gray-200"
+      }`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
