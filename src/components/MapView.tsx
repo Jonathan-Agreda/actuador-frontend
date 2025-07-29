@@ -3,44 +3,99 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L, { DivIcon, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
+import { getLoraIcon, getGatewayIcon, getMotorIcon } from "@/utils/iconUtils";
 
 interface Gateway {
+  alias: string;
   ip: string;
-  estado: "ok" | "reiniciando" | "caido";
+}
+
+interface Relays {
+  releMotor1: boolean;
+  releMotor2: boolean;
+  releGateway: boolean;
+  releValvula: boolean;
 }
 
 interface Actuador {
   id: string;
   alias: string;
-  ip: string;
   latitud: number;
   longitud: number;
   estado: "online" | "offline";
-  relayEncendido: boolean;
+  estadoGateway: boolean;
   gateway: Gateway;
+  motorEncendido: boolean;
+  relays: Relays;
 }
 
 interface Props {
   actuadores: Actuador[];
 }
 
-const getCustomIcon = (alias: string, estado: "online" | "offline"): DivIcon =>
-  new L.DivIcon({
+const createCustomIcon = (
+  alias: string,
+  estado: "online" | "offline",
+  estadoGateway: boolean,
+  motorEncendido: boolean,
+  gatewayAlias: string
+): L.DivIcon => {
+  return new L.DivIcon({
     className: "custom-marker",
     html: `
-      <div class="marker-label-container">
-        <div class="marker-label">${alias}</div>
-        <div class="${estado === "offline" ? "blinking-wrapper" : ""}">
-          <img src="/icons/${estado}.svg" class="w-[25px] h-[25px]" />
-        </div>
+  <div style="
+    background: white;
+    border-radius: 10px;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    text-align: center;
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.15));
+  ">
+    <div style="font-weight: 600; font-size: 12px;">${alias}</div>
+
+    <img src="${getLoraIcon(estado)}"
+      style="width: 32px; height: 32px; margin: 4px auto; filter: drop-shadow(0 0 2px rgba(0,0,0,0.25));" />
+
+    <div style="
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    ">
+      <div style="
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 6px;
+        padding: 3px;
+        box-shadow: 0 0 1px rgba(0,0,0,0.3);
+      ">
+        <img src="${getGatewayIcon(estadoGateway)}" title="Gateway"
+          style="width: 26px; height: 26px;" />
       </div>
-    `,
-    iconSize: [25, 40],
-    iconAnchor: [12.5, 25],
+
+      <div style="
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 6px;
+        padding: 3px;
+        box-shadow: 0 0 1px rgba(0,0,0,0.3);
+      ">
+        <img src="${getMotorIcon(motorEncendido)}" title="Motor"
+          style="width: 26px; height: 26px;" />
+      </div>
+    </div>
+
+    <div style="font-size: 10px; color: #444; font-weight: 500; margin-top: 4px;">
+      ${gatewayAlias}
+    </div>
+  </div>
+  `,
+    iconSize: [60, 80],
+    iconAnchor: [30, 40],
   });
+};
 
 function ResizeMapOnDataChange({ trigger }: { trigger: number }) {
   const map = useMap();
@@ -62,7 +117,6 @@ export default function MapView({ actuadores }: Props) {
     (a) => a.estado === "offline"
   ).length;
 
-  // 🟡 Solicita permiso de notificación si existe API
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission !== "granted") {
@@ -71,7 +125,6 @@ export default function MapView({ actuadores }: Props) {
     }
   }, []);
 
-  // 🔊 Preload sonido
   useEffect(() => {
     audioRef.current = new Audio("/sounds/alert.mp3");
     audioRef.current.loop = false;
@@ -91,7 +144,6 @@ export default function MapView({ actuadores }: Props) {
     };
   }, []);
 
-  // 🚨 Alertas: sonido, vibración, notificación (protegido)
   useEffect(() => {
     if (!readyToPlay || actuadores.length === 0 || muted) return;
 
@@ -105,16 +157,13 @@ export default function MapView({ actuadores }: Props) {
         audioRef.current?.play().catch(() => {});
         navigator.vibrate?.([300, 100, 300]);
 
-        // ✅ Solo si existe y está permitido
-        if (typeof window !== "undefined" && "Notification" in window) {
-          if (Notification.permission === "granted") {
-            new Notification("¡Alerta Lora!", {
-              body: `Hay ${cantidadOffline} Lora${
-                cantidadOffline > 1 ? "s" : ""
-              } en estado offline.`,
-              icon: "/icons/offline.svg",
-            });
-          }
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("¡Alerta Lora!", {
+            body: `Hay ${cantidadOffline} Lora${
+              cantidadOffline > 1 ? "s" : ""
+            } en estado offline.`,
+            icon: "/icons/offline.svg",
+          });
         }
       }
     } else {
@@ -124,7 +173,6 @@ export default function MapView({ actuadores }: Props) {
 
   return (
     <div className="w-full h-full min-h-[300px] rounded shadow overflow-hidden z-0 relative">
-      {/* 🔔 Botón sonido + contador */}
       <div className="absolute top-2 right-2 z-[999]">
         <button
           onClick={() => setMuted(!muted)}
@@ -146,7 +194,7 @@ export default function MapView({ actuadores }: Props) {
 
       <MapContainer
         center={initialCenter}
-        zoom={13}
+        zoom={14}
         style={{ height: "100%", width: "100%" }}
       >
         <ResizeMapOnDataChange trigger={actuadores.length} />
@@ -154,23 +202,24 @@ export default function MapView({ actuadores }: Props) {
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {actuadores.map((act) => {
-          const markerPos: LatLngExpression = [act.latitud, act.longitud];
-          return (
-            <Marker
-              key={act.id}
-              position={markerPos}
-              icon={getCustomIcon(act.alias, act.estado)}
-            >
-              <Popup>
-                <div
-                  className={`text-sm p-2 rounded shadow ${
-                    act.estado === "offline" ? "border border-red-500" : ""
-                  }`}
-                >
-                  <strong>{act.alias}</strong>
-                  <br />
-                  Estado:{" "}
+        {actuadores.map((act) => (
+          <Marker
+            key={act.id}
+            position={[act.latitud, act.longitud]}
+            icon={createCustomIcon(
+              act.alias,
+              act.estado,
+              act.estadoGateway,
+              act.motorEncendido,
+              act.gateway.alias
+            )}
+          >
+            <Popup>
+              <div className="text-sm">
+                <p className="font-bold">{act.alias}</p>
+                <p>IP: {act.gateway.ip}</p>
+                <p>
+                  Estado Lora:{" "}
                   <span
                     className={
                       act.estado === "online"
@@ -180,41 +229,31 @@ export default function MapView({ actuadores }: Props) {
                   >
                     {act.estado}
                   </span>
-                  <br />
+                </p>
+                <p>
+                  Motor:{" "}
+                  <span
+                    className={
+                      act.motorEncendido ? "text-green-600" : "text-gray-600"
+                    }
+                  >
+                    {act.motorEncendido ? "Encendido" : "Apagado"}
+                  </span>
+                </p>
+                <p>
                   Gateway:{" "}
                   <span
                     className={
-                      act.gateway.estado === "ok"
-                        ? "text-green-600"
-                        : act.gateway.estado === "reiniciando"
-                        ? "text-yellow-600"
-                        : "text-red-600"
+                      act.estadoGateway ? "text-green-600" : "text-red-600"
                     }
                   >
-                    {act.gateway.estado}
+                    {act.estadoGateway ? "online" : "offline"}
                   </span>
-                  <br />
-                  <div className="mt-2 flex items-center gap-2">
-                    <Image
-                      src={
-                        act.relayEncendido
-                          ? "/icons/relay-on.svg"
-                          : "/icons/relay-off.svg"
-                      }
-                      alt="Relé"
-                      width={20}
-                      height={20}
-                      className={act.relayEncendido ? "pulse" : "opacity-70"}
-                    />
-                    <span>
-                      Relé: {act.relayEncendido ? "Encendido" : "Apagado"}
-                    </span>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   );
