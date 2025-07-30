@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import socket from "@/lib/socket";
 import dynamic from "next/dynamic";
+import socket from "@/lib/socket";
 import LoraCard from "@/components/LoraCard";
 import CrearGrupoModal from "@/components/grupos/CrearGrupoModal";
 import GrupoCard from "@/components/grupos/GrupoCard";
 import { useGrupos } from "@/hooks/useGrupos";
+import { Actuador } from "@/types/actuador";
+import { Grupo } from "@/types/grupo";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -16,7 +18,7 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 const empresaId = "cb15184e-3633-4d74-9a49-85f3df111320"; // ⚠️ usa empresaId real en producción
 
 export default function DashboardPage() {
-  const [actuadores, setActuadores] = useState<any[]>([]);
+  const [actuadores, setActuadores] = useState<Actuador[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { data: grupos } = useGrupos();
@@ -31,7 +33,7 @@ export default function DashboardPage() {
         const data = await res.json();
         setActuadores(data);
       } catch (err) {
-        console.error("Error inicial:", err);
+        console.error("Error al obtener actuadores:", err);
       }
     };
     fetchActuadores();
@@ -39,12 +41,11 @@ export default function DashboardPage() {
 
   // 2. Escuchar actualizaciones vía socket
   useEffect(() => {
-    socket.on("estado-actuadores", (data: any[]) => {
+    socket.on("estado-actuadores", (data: Actuador[]) => {
       setActuadores((prev) =>
         prev.map((act) => {
           const nuevo = data.find((a) => a.id === act.id);
-          if (!nuevo) return act;
-          return { ...act, ...nuevo };
+          return nuevo ? { ...act, ...nuevo } : act;
         })
       );
     });
@@ -73,7 +74,7 @@ export default function DashboardPage() {
         }
       );
     } catch (err) {
-      console.error("Error al procesar:", err);
+      console.error("Error al procesar acción:", err);
     } finally {
       setLoadingId(null);
     }
@@ -94,12 +95,12 @@ export default function DashboardPage() {
             + Crear Grupo
           </button>
 
-          {/* Modal */}
           <CrearGrupoModal
             open={modalOpen}
             onClose={() => setModalOpen(false)}
             empresaId={empresaId}
             loras={actuadores}
+            gruposExistentes={grupos ?? []}
           />
 
           {/* Lista de Loras */}
@@ -124,9 +125,8 @@ export default function DashboardPage() {
             />
           ))}
 
-          {/* Lista de Grupos */}
           <h2 className="text-xl font-semibold mt-4">Grupos creados</h2>
-          {grupos?.map((grupo) => (
+          {grupos?.map((grupo: Grupo) => (
             <GrupoCard
               key={grupo.id}
               grupo={grupo}

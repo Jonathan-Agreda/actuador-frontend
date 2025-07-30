@@ -1,7 +1,6 @@
 "use client";
 
 import { Dialog } from "@headlessui/react";
-import { ReactNode } from "react";
 import { Button } from "./button";
 
 interface ConfirmDialogProps {

@@ -8,27 +8,15 @@ import {
   getMotorIcon,
   getRelayIcon,
 } from "@/utils/iconUtils";
+import { Settings2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Actuador, Gateway } from "@/types/actuador";
 
-interface Gateway {
-  alias: string;
-  ip: string;
-  estado: "ok" | "reiniciando" | "caido";
-}
-
-interface Relays {
-  releMotor1: boolean;
-  releMotor2: boolean;
-  releGateway: boolean;
-  releValvula: boolean;
-}
-
-interface Props {
-  id: string;
-  alias: string;
-  ip: string;
-  estado: "online" | "offline";
-  motorEncendido: boolean;
-  relays: Relays;
+interface LoraCardProps
+  extends Pick<
+    Actuador,
+    "id" | "alias" | "ip" | "estado" | "motorEncendido" | "relays"
+  > {
   gateway: Gateway;
   onEncenderMotor: () => void;
   onApagarMotor: () => void;
@@ -47,19 +35,35 @@ export default function LoraCard({
   onApagarMotor,
   onReiniciarGateway,
   loading,
-}: Props) {
+}: LoraCardProps) {
   const [hovered, setHovered] = useState(false);
 
   const bordeRojo = estado === "offline" || gateway.estado === "caido";
 
   return (
     <div
-      className={`p-4 bg-white rounded-lg shadow hover:shadow-md transition-all space-y-2 border ${
+      className={`relative p-4 bg-white rounded-lg shadow hover:shadow-md transition-all space-y-2 border ${
         bordeRojo ? "border-red-500" : "border-gray-200"
       }`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Icono animado en hover */}
+      <AnimatePresence>
+        {hovered && (
+          <motion.div
+            className="absolute top-2 right-3 flex items-center gap-1 text-gray-500 text-xs"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Settings2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Opciones de control</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-lg">{alias}</h2>
         <Image src={getLoraIcon(estado)} alt="estado" width={30} height={30} />
@@ -92,17 +96,32 @@ export default function LoraCard({
         </p>
         <div className="flex gap-2 items-center mt-1">
           Relés:
-          {Object.entries(relays).map(([nombre, valor]) => (
-            <Image
-              key={nombre}
-              src={getRelayIcon(valor)}
-              alt={nombre}
-              title={nombre}
-              width={20}
-              height={20}
-              className={valor ? "opacity-100" : "opacity-60"}
-            />
-          ))}
+          <div className="flex gap-3 items-center mt-1">
+            {[
+              { key: "releGateway", label: "RG" },
+              { key: "releValvula", label: "RV" },
+              { key: "releMotor1", label: "RM1" },
+              { key: "releMotor2", label: "RM2" },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex flex-col items-center">
+                <Image
+                  src={getRelayIcon(relays[key as keyof typeof relays])}
+                  alt={label}
+                  title={label}
+                  width={20}
+                  height={20}
+                  className={
+                    relays[key as keyof typeof relays]
+                      ? "opacity-100"
+                      : "opacity-60"
+                  }
+                />
+                <span className="text-[10px] text-gray-500 font-medium">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

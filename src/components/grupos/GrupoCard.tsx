@@ -1,3 +1,5 @@
+"use client";
+
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { useEliminarGrupo } from "@/hooks/useEliminarGrupo";
@@ -5,32 +7,35 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { toast } from "sonner";
+import { Actuador } from "@/types/actuador";
+import { Grupo } from "@/types/grupo";
+import { ApiError } from "@/types/types";
 
 interface GrupoCardProps {
-  grupo: any;
-  actuadoresActualizados: any[];
+  grupo: Grupo;
+  actuadoresActualizados: Actuador[];
 }
 
 export default function GrupoCard({
   grupo,
   actuadoresActualizados,
 }: GrupoCardProps) {
-  const getEstadoLora = (id: string) => {
-    return actuadoresActualizados.find((a) => a.id === id);
-  };
-
   const [showDialog, setShowDialog] = useState(false);
+  const { mutate: eliminarGrupo, isPending } = useEliminarGrupo();
 
-  const { mutate: eliminarGrupo, isLoading } = useEliminarGrupo();
+  const getEstadoLora = (id: string) =>
+    actuadoresActualizados.find((a) => a.id === id);
 
   const handleEliminar = () => {
     eliminarGrupo(grupo.id, {
       onSuccess: () => toast.success("Grupo eliminado correctamente"),
-      onError: (error: any) => {
+      onError: (error: unknown) => {
+        const err = error as ApiError;
         const mensaje =
-          error?.response?.data?.message ||
-          error?.message ||
+          err?.response?.data?.message ||
+          err?.message ||
           "Error inesperado al eliminar el grupo";
+
         toast.error(mensaje);
         console.error("Error al eliminar grupo:", error);
       },
@@ -62,7 +67,6 @@ export default function GrupoCard({
         })}
       </div>
 
-      {/* Acciones + Eliminar alineado a derecha */}
       <div className="flex justify-between items-center pt-2 flex-wrap gap-y-2">
         <div className="flex gap-2">
           <Button className="bg-green-600 hover:bg-green-700 text-white">
@@ -91,8 +95,8 @@ export default function GrupoCard({
         onConfirm={handleEliminar}
         title={`¿Eliminar grupo "${grupo.nombre}"?`}
         description="Esta acción no se puede deshacer."
-        confirmText={isLoading ? "Eliminando..." : "Eliminar grupo"}
-        isLoading={isLoading}
+        confirmText={isPending ? "Eliminando..." : "Eliminar grupo"}
+        isLoading={isPending}
       />
     </div>
   );

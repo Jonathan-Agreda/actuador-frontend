@@ -3,33 +3,11 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L, { DivIcon, LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { getLoraIcon, getGatewayIcon, getMotorIcon } from "@/utils/iconUtils";
-
-interface Gateway {
-  alias: string;
-  ip: string;
-}
-
-interface Relays {
-  releMotor1: boolean;
-  releMotor2: boolean;
-  releGateway: boolean;
-  releValvula: boolean;
-}
-
-interface Actuador {
-  id: string;
-  alias: string;
-  latitud: number;
-  longitud: number;
-  estado: "online" | "offline";
-  estadoGateway: boolean;
-  gateway: Gateway;
-  motorEncendido: boolean;
-  relays: Relays;
-}
+import { Actuador } from "@/types/actuador";
+type Estado = Actuador["estado"];
 
 interface Props {
   actuadores: Actuador[];
@@ -37,7 +15,7 @@ interface Props {
 
 const createCustomIcon = (
   alias: string,
-  estado: "online" | "offline",
+  estado: Estado,
   estadoGateway: boolean,
   motorEncendido: boolean,
   gatewayAlias: string
@@ -112,14 +90,20 @@ export default function MapView({ actuadores }: Props) {
   const [muted, setMuted] = useState(false);
   const lastAlertRef = useRef<number>(0);
 
-  const cantidadLorasOffline = actuadores.filter(
-    (a) => a.estado === "offline"
-  ).length;
-  const cantidadGatewaysOffline = actuadores.filter(
-    (a) => !a.estadoGateway
-  ).length;
+  const cantidadLorasOffline = useMemo(
+    () => actuadores.filter((a) => a.estado === "offline").length,
+    [actuadores]
+  );
 
-  const hayOffline = cantidadLorasOffline > 0 || cantidadGatewaysOffline > 0;
+  const cantidadGatewaysOffline = useMemo(
+    () => actuadores.filter((a) => !a.estadoGateway).length,
+    [actuadores]
+  );
+
+  const hayOffline = useMemo(
+    () => cantidadLorasOffline > 0 || cantidadGatewaysOffline > 0,
+    [cantidadLorasOffline, cantidadGatewaysOffline]
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
@@ -170,11 +154,17 @@ export default function MapView({ actuadores }: Props) {
     } else {
       lastAlertRef.current = 0;
     }
-  }, [actuadores, readyToPlay, muted]);
+  }, [
+    actuadores,
+    readyToPlay,
+    muted,
+    hayOffline,
+    cantidadLorasOffline,
+    cantidadGatewaysOffline,
+  ]);
 
   return (
     <div className="w-full h-full min-h-[300px] rounded shadow overflow-hidden z-0 relative">
-      {/* Botón de alarma con tooltip */}
       <div className="absolute top-2 right-2 z-[999]">
         <div className="relative group">
           <button
@@ -213,7 +203,6 @@ export default function MapView({ actuadores }: Props) {
         </div>
       </div>
 
-      {/* Mapa */}
       <MapContainer
         center={initialCenter}
         zoom={14}

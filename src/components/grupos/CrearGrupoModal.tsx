@@ -5,21 +5,28 @@ import { useCrearGrupo } from "@/hooks/useGrupos";
 import { useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { toast } from "sonner";
+import { Actuador } from "@/types/actuador";
+import { Grupo } from "@/types/grupo";
+
+interface CrearGrupoModalProps {
+  open: boolean;
+  onClose: () => void;
+  empresaId: string;
+  loras: Pick<Actuador, "id" | "alias">[]; // ✅ solo lo necesario
+  gruposExistentes: Grupo[];
+}
 
 export default function CrearGrupoModal({
   open,
   onClose,
   empresaId,
   loras,
-}: {
-  open: boolean;
-  onClose: () => void;
-  empresaId: string;
-  loras: any[];
-}) {
+  gruposExistentes,
+}: CrearGrupoModalProps) {
   const [nombre, setNombre] = useState("");
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
-  const { mutateAsync: crearGrupo, isLoading } = useCrearGrupo();
+  const { mutateAsync: crearGrupo, isPending } = useCrearGrupo();
 
   const toggleLora = (id: string) => {
     setSeleccionados((prev) =>
@@ -36,7 +43,29 @@ export default function CrearGrupoModal({
   };
 
   const handleCrear = async () => {
-    await crearGrupo({ nombre, empresaId, loraIds: seleccionados });
+    const nombreTrim = nombre.trim();
+
+    if (!nombreTrim) {
+      toast.error("El nombre no puede estar vacío");
+      return;
+    }
+
+    const nombreExiste = gruposExistentes.some(
+      (g) => g.nombre.toLowerCase() === nombreTrim.toLowerCase()
+    );
+
+    if (nombreExiste) {
+      toast.error("Ya existe un grupo con ese nombre");
+      return;
+    }
+
+    if (seleccionados.length === 0) {
+      toast.error("Debes seleccionar al menos una Lora");
+      return;
+    }
+
+    await crearGrupo({ nombre: nombreTrim, empresaId, loraIds: seleccionados });
+
     setNombre("");
     setSeleccionados([]);
     onClose();
@@ -48,13 +77,14 @@ export default function CrearGrupoModal({
       <div className="fixed inset-0 flex items-center justify-center z-50">
         <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md space-y-4 shadow-xl">
           <h2 className="text-xl font-semibold">Crear nuevo grupo</h2>
+
           <Input
             placeholder="Nombre del grupo"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
           />
+
           <div className="max-h-48 overflow-y-auto border rounded p-2 space-y-1 bg-gray-800">
-            {/* Checkbox para seleccionar todos */}
             <label className="flex items-center gap-2 font-medium">
               <input
                 type="checkbox"
@@ -78,6 +108,7 @@ export default function CrearGrupoModal({
               </label>
             ))}
           </div>
+
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
@@ -92,9 +123,10 @@ export default function CrearGrupoModal({
             </Button>
             <Button
               onClick={handleCrear}
-              disabled={isLoading || !nombre || seleccionados.length === 0}
+              disabled={isPending}
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isLoading ? "Creando..." : "Crear Grupo"}
+              {isPending ? "Creando..." : "Crear Grupo"}
             </Button>
           </div>
         </div>
