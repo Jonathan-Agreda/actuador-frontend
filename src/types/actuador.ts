@@ -1,7 +1,7 @@
 export interface Gateway {
   alias: string;
   ip: string;
-  estado: "ok" | "reiniciando" | "caido";
+  estado: "ok" | "caido" | "reiniciando";
 }
 
 export interface Relays {
@@ -20,6 +20,6 @@ export interface Actuador {
   estado: "online" | "offline";
   motorEncendido: boolean;
   relays: Relays;
-  estadoGateway: boolean;
+  estadoGateway: "ok" | "caido" | "reiniciando";
   gateway: Gateway;
 }

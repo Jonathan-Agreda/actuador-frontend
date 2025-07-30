@@ -8,7 +8,7 @@ import {
   getMotorIcon,
   getRelayIcon,
 } from "@/utils/iconUtils";
-import { Settings2 } from "lucide-react";
+import { Settings2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Actuador, Gateway } from "@/types/actuador";
 
@@ -37,8 +37,9 @@ export default function LoraCard({
   loading,
 }: LoraCardProps) {
   const [hovered, setHovered] = useState(false);
+  const bordeRojo = estado === "offline" || gateway.estado !== "ok";
 
-  const bordeRojo = estado === "offline" || gateway.estado === "caido";
+  const iconoGateway = getGatewayIcon(gateway.estado);
 
   return (
     <div
@@ -48,7 +49,6 @@ export default function LoraCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Icono animado en hover */}
       <AnimatePresence>
         {hovered && (
           <motion.div
@@ -74,15 +74,28 @@ export default function LoraCard({
       <div className="text-sm">
         <p className="flex items-center gap-2">
           Gateway:
-          <Image
-            src={getGatewayIcon(gateway.estado === "ok")}
-            alt="gw"
-            width={30}
-            height={30}
-          />
+          <Image src={iconoGateway} alt="gw" width={30} height={30} />
           <span className="font-semibold">{gateway.alias}</span>
         </p>
-        <p className="flex items-center gap-2">
+
+        <p className="text-xs text-gray-500">
+          Estado GW:{" "}
+          <span
+            className={
+              gateway.estado === "ok"
+                ? "text-green-600"
+                : gateway.estado === "caido"
+                ? "text-red-600"
+                : "text-yellow-500"
+            }
+          >
+            {gateway.estado === "reiniciando"
+              ? "Reiniciando..."
+              : gateway.estado}
+          </span>
+        </p>
+
+        <p className="flex items-center gap-2 mt-1">
           Motor:
           <Image
             src={getMotorIcon(motorEncendido)}
@@ -94,6 +107,7 @@ export default function LoraCard({
             {motorEncendido ? "Encendido" : "Apagado"}
           </span>
         </p>
+
         <div className="flex gap-2 items-center mt-1">
           Relés:
           <div className="flex gap-3 items-center mt-1">
@@ -129,7 +143,7 @@ export default function LoraCard({
         <button
           onClick={motorEncendido ? onApagarMotor : onEncenderMotor}
           disabled={loading}
-          className={`px-3 py-1 rounded text-white text-sm font-semibold transition ${
+          className={`px-3 py-1 rounded text-white text-sm font-semibold transition flex items-center gap-2 ${
             loading
               ? "bg-gray-400 cursor-not-allowed"
               : motorEncendido
@@ -137,18 +151,30 @@ export default function LoraCard({
               : "bg-green-600 hover:bg-green-700"
           }`}
         >
-          {loading
-            ? "Procesando..."
-            : motorEncendido
-            ? "Apagar motor"
-            : "Encender motor"}
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Procesando...
+            </>
+          ) : motorEncendido ? (
+            "Apagar motor"
+          ) : (
+            "Encender motor"
+          )}
         </button>
         <button
           onClick={onReiniciarGateway}
           disabled={loading}
-          className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+          className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2"
         >
-          {loading ? "..." : "Reiniciar GW"}
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              ...
+            </>
+          ) : (
+            "Reiniciar GW"
+          )}
         </button>
       </div>
     </div>

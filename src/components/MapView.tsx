@@ -16,11 +16,11 @@ interface Props {
 const createCustomIcon = (
   alias: string,
   estado: Estado,
-  estadoGateway: boolean,
+  estadoGateway: "ok" | "caido" | "reiniciando",
   motorEncendido: boolean,
   gatewayAlias: string
 ): DivIcon => {
-  const bordeCritico = estado === "offline" || !estadoGateway;
+  const bordeCritico = estado === "offline" || estadoGateway !== "ok";
 
   return new L.DivIcon({
     className: "custom-marker",
@@ -96,7 +96,7 @@ export default function MapView({ actuadores }: Props) {
   );
 
   const cantidadGatewaysOffline = useMemo(
-    () => actuadores.filter((a) => !a.estadoGateway).length,
+    () => actuadores.filter((a) => a.estadoGateway !== "ok").length,
     [actuadores]
   );
 
@@ -255,10 +255,14 @@ export default function MapView({ actuadores }: Props) {
                   Gateway:{" "}
                   <span
                     className={
-                      act.estadoGateway ? "text-green-600" : "text-red-600"
+                      act.estadoGateway === "ok"
+                        ? "text-green-600"
+                        : act.estadoGateway === "reiniciando"
+                        ? "text-yellow-600"
+                        : "text-red-600"
                     }
                   >
-                    {act.estadoGateway ? "online" : "offline"}
+                    {act.estadoGateway}
                   </span>
                 </p>
               </div>
