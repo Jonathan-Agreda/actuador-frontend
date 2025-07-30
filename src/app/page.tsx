@@ -4,16 +4,24 @@ import { useEffect, useState } from "react";
 import socket from "@/lib/socket";
 import dynamic from "next/dynamic";
 import LoraCard from "@/components/LoraCard";
+import CrearGrupoModal from "@/components/grupos/CrearGrupoModal";
+import GrupoCard from "@/components/grupos/GrupoCard";
+import { useGrupos } from "@/hooks/useGrupos";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
   loading: () => <div className="text-center p-4">Cargando mapa...</div>,
 });
 
+const empresaId = "cb15184e-3633-4d74-9a49-85f3df111320"; // ⚠️ usa empresaId real en producción
+
 export default function DashboardPage() {
   const [actuadores, setActuadores] = useState<any[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const { data: grupos } = useGrupos();
 
+  // 1. Obtener Loras al cargar
   useEffect(() => {
     const fetchActuadores = async () => {
       try {
@@ -29,6 +37,7 @@ export default function DashboardPage() {
     fetchActuadores();
   }, []);
 
+  // 2. Escuchar actualizaciones vía socket
   useEffect(() => {
     socket.on("estado-actuadores", (data: any[]) => {
       setActuadores((prev) =>
@@ -76,6 +85,24 @@ export default function DashboardPage() {
         {/* Panel izquierdo */}
         <div className="lg:w-1/2 flex flex-col gap-4 overflow-y-auto max-h-screen pr-2">
           <h1 className="text-2xl font-bold">Loras disponibles</h1>
+
+          {/* Botón para abrir modal */}
+          <button
+            onClick={() => setModalOpen(true)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded"
+          >
+            + Crear Grupo
+          </button>
+
+          {/* Modal */}
+          <CrearGrupoModal
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            empresaId={empresaId}
+            loras={actuadores}
+          />
+
+          {/* Lista de Loras */}
           {actuadores.map((act) => (
             <LoraCard
               key={act.id}
@@ -94,6 +121,16 @@ export default function DashboardPage() {
               onApagarMotor={() => handleAccion(act.id, "apagar")}
               onReiniciarGateway={() => handleAccion(act.id, "reiniciar")}
               loading={loadingId === act.id}
+            />
+          ))}
+
+          {/* Lista de Grupos */}
+          <h2 className="text-xl font-semibold mt-4">Grupos creados</h2>
+          {grupos?.map((grupo) => (
+            <GrupoCard
+              key={grupo.id}
+              grupo={grupo}
+              actuadoresActualizados={actuadores}
             />
           ))}
         </div>
