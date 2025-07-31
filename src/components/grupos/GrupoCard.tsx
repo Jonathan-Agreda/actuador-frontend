@@ -11,6 +11,8 @@ import { Actuador } from "@/types/actuador";
 import { Grupo } from "@/types/grupo";
 import { ApiError } from "@/types/types";
 import { ejecutarAccionGrupal } from "@/services/loraService";
+import Image from "next/image";
+import { getGatewayIcon } from "@/utils/iconUtils";
 
 interface GrupoCardProps {
   grupo: Grupo;
@@ -96,15 +98,30 @@ export default function GrupoCard({
       <div className="flex flex-wrap gap-2">
         {grupo.GrupoActuador.map(({ actuador }) => {
           const actualizado = getEstadoLora(actuador.id);
-          const estado = actualizado?.estado || actuador.estado;
+          const estadoLora = actualizado?.estado || actuador.estado;
+          const estadoGateway =
+            actualizado?.estadoGateway || actuador.estadoGateway;
+          const aliasGateway =
+            actualizado?.gateway?.alias || actuador.gateway?.alias || "GW";
 
           return (
-            <Badge
+            <div
               key={actuador.id}
-              variant={estado === "online" ? "success" : "destructive"}
+              className="flex items-center gap-1 bg-white text-gray-900 rounded px-2 py-1"
             >
-              {actuador.alias}
-            </Badge>
+              <Badge
+                variant={estadoLora === "online" ? "success" : "destructive"}
+              >
+                {actuador.alias}
+              </Badge>
+              <Image
+                src={getGatewayIcon(estadoGateway)}
+                alt="Estado GW"
+                width={16}
+                height={16}
+                title={`${aliasGateway} - ${estadoGateway}`}
+              />
+            </div>
           );
         })}
       </div>
