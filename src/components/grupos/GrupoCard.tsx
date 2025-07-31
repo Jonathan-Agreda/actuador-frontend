@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Actuador } from "@/types/actuador";
 import { Grupo } from "@/types/grupo";
 import { ApiError } from "@/types/types";
+import { ejecutarAccionGrupal } from "@/services/loraService";
 
 interface GrupoCardProps {
   grupo: Grupo;
@@ -42,6 +43,47 @@ export default function GrupoCard({
     });
   };
 
+  const handleAccionGrupal = async (
+    accion: "encender" | "apagar" | "reiniciar"
+  ) => {
+    const idsLoras = grupo.GrupoActuador.map((ga) => ga.actuador.id);
+
+    const aliasMap = grupo.GrupoActuador.reduce(
+      (acc, ga) => ({ ...acc, [ga.actuador.id]: ga.actuador.alias }),
+      {} as Record<string, string>
+    );
+
+    const toastId = toast.loading(`Ejecutando acción grupal: ${accion}`);
+
+    try {
+      const { exitosas, fallidas, mensajes } = await ejecutarAccionGrupal(
+        idsLoras,
+        aliasMap,
+        accion
+      );
+
+      toast.success(`Acción grupal completada: ${accion}`, { id: toastId });
+
+      if (fallidas.length > 0 && exitosas.length === 0) {
+        toast.warning(
+          `Ningún Lora fue ${
+            accion === "reiniciar" ? "reiniciado" : accion + "do"
+          }`
+        );
+      } else if (fallidas.length > 0) {
+        toast.warning(
+          `${exitosas.length} exitosos, ${fallidas.length} fallidos`
+        );
+      }
+
+      mensajes.forEach((msg) => toast.error(msg));
+    } catch {
+      toast.error(`Error general al ejecutar acción: ${accion}`, {
+        id: toastId,
+      });
+    }
+  };
+
   return (
     <div className="bg-gray-900 text-white border border-gray-700 rounded-xl p-4 shadow-lg space-y-4">
       <div className="flex items-center justify-between">
@@ -68,14 +110,25 @@ export default function GrupoCard({
       </div>
 
       <div className="flex justify-between items-center pt-2 flex-wrap gap-y-2">
-        <div className="flex gap-2">
-          <Button className="bg-green-600 hover:bg-green-700 text-white">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            className="bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => handleAccionGrupal("encender")}
+          >
             Encender Motor
           </Button>
-          <Button className="bg-yellow-500 hover:bg-yellow-600 text-white">
+
+          <Button
+            className="bg-yellow-500 hover:bg-yellow-600 text-white"
+            onClick={() => handleAccionGrupal("apagar")}
+          >
             Apagar Motor
           </Button>
-          <Button className="bg-red-600 hover:bg-red-700 text-white">
+
+          <Button
+            className="bg-red-600 hover:bg-red-700 text-white"
+            onClick={() => handleAccionGrupal("reiniciar")}
+          >
             Reiniciar GW
           </Button>
         </div>

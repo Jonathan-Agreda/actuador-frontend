@@ -140,28 +140,31 @@ export default function LoraCard({
       </div>
 
       <div className="flex gap-2 mt-3">
-        <button
-          onClick={motorEncendido ? onApagarMotor : onEncenderMotor}
-          disabled={loading}
-          className={`px-3 py-1 rounded text-white text-sm font-semibold transition flex items-center gap-2 ${
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : motorEncendido
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-green-600 hover:bg-green-700"
-          }`}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Procesando...
-            </>
-          ) : motorEncendido ? (
-            "Apagar motor"
-          ) : (
-            "Encender motor"
-          )}
-        </button>
+        {estado === "online" && gateway.estado === "ok" && (
+          <button
+            onClick={motorEncendido ? onApagarMotor : onEncenderMotor}
+            disabled={loading}
+            className={`px-3 py-1 rounded text-white text-sm font-semibold transition flex items-center gap-2 ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : motorEncendido
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Procesando...
+              </>
+            ) : motorEncendido ? (
+              "Apagar motor"
+            ) : (
+              "Encender motor"
+            )}
+          </button>
+        )}
+
         <button
           onClick={onReiniciarGateway}
           disabled={loading}

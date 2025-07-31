@@ -85,7 +85,7 @@ export default function DashboardPage() {
       if (res.ok) {
         toast.success(`✅ ${alias} ${accion} correctamente`);
       } else {
-        toast.error(`❌ Error al ${accion} ${alias}: ${data.message}`);
+        toast.error(`❌ ${data?.message || `Error al ${accion} ${alias}`}`);
       }
     } catch (err) {
       toast.error(`❌ Error inesperado al procesar ${alias}`);
@@ -103,7 +103,7 @@ export default function DashboardPage() {
 
           {actuadores
             .slice()
-            .sort((a: Actuador, b: Actuador) => a.alias.localeCompare(b.alias))
+            .sort((a, b) => a.alias.localeCompare(b.alias))
             .map((act) => (
               <LoraCard
                 key={act.id}
@@ -144,8 +144,8 @@ export default function DashboardPage() {
 
           {grupos
             ?.slice()
-            .sort((a: Grupo, b: Grupo) => a.nombre.localeCompare(b.nombre))
-            .map((grupo: Grupo) => (
+            .sort((a, b) => a.nombre.localeCompare(b.nombre))
+            .map((grupo) => (
               <GrupoCard
                 key={grupo.id}
                 grupo={grupo}
