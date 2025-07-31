@@ -1,4 +1,5 @@
 import axios from "@/lib/axios";
+import type { AxiosError } from "axios";
 
 export const ejecutarAccionGrupal = async (
   lorasIds: string[],
@@ -20,9 +21,10 @@ export const ejecutarAccionGrupal = async (
     try {
       await axios.post(endpoint(id));
       exitosas.push(id);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ message: string }>;
       const rawMsg =
-        err?.response?.data?.message || `Error al ejecutar ${accion}`;
+        axiosError.response?.data?.message || `Error al ejecutar ${accion}`;
       const msg = `❌ ${alias}: ${rawMsg}`;
       console.error(msg);
       fallidas.push(id);

@@ -144,8 +144,8 @@ export default function DashboardPage() {
 
           {grupos
             ?.slice()
-            .sort((a, b) => a.nombre.localeCompare(b.nombre))
-            .map((grupo) => (
+            .sort((a: Grupo, b: Grupo) => a.nombre.localeCompare(b.nombre))
+            .map((grupo: Grupo) => (
               <GrupoCard
                 key={grupo.id}
                 grupo={grupo}
