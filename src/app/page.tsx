@@ -10,6 +10,8 @@ import { useGrupos } from "@/hooks/useGrupos";
 import { Actuador } from "@/types/actuador";
 import { Grupo } from "@/types/grupo";
 import { toast } from "sonner";
+import { getLoraIcon, getGatewayIcon, getMotorIcon } from "@/utils/iconUtils";
+import Image from "next/image";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -215,9 +217,23 @@ export default function DashboardPage() {
             <>
               <div className="mt-2">
                 <h2 className="text-md font-semibold mb-1">Lista de Loras</h2>
+
+                {/* 🔍 Filtro visible también en modo árbol */}
+                <input
+                  type="text"
+                  placeholder="Buscar por alias..."
+                  value={busquedaAlias}
+                  onChange={(e) => setBusquedaAlias(e.target.value)}
+                  className="input input-bordered w-full mb-2"
+                />
+
                 <ul className="border rounded p-2 max-h-64 overflow-y-auto">
                   {actuadores
-                    .slice()
+                    .filter((act) =>
+                      act.alias
+                        .toLowerCase()
+                        .includes(busquedaAlias.toLowerCase())
+                    )
                     .sort((a, b) => a.alias.localeCompare(b.alias))
                     .map((act) => (
                       <li
@@ -229,14 +245,32 @@ export default function DashboardPage() {
                         }`}
                         onClick={() => setLoraSeleccionado(act)}
                       >
-                        <span
-                          className={`inline-block w-2 h-2 rounded-full mr-2 ${
-                            act.estado === "online"
-                              ? "bg-green-500"
-                              : "bg-red-500"
-                          }`}
-                        ></span>
-                        {act.alias}
+                        <div className="flex items-center gap-2">
+                          <Image
+                            src={getLoraIcon(act.estado)}
+                            alt="lora"
+                            width={20}
+                            height={20}
+                            className="shrink-0"
+                          />
+                          <span>{act.alias}</span>
+                          <span className="text-xs text-gray-500 flex items-center gap-1 ml-2">
+                            (
+                            <Image
+                              src={getGatewayIcon(act.estadoGateway)}
+                              alt="gw"
+                              width={16}
+                              height={16}
+                            />
+                            <Image
+                              src={getMotorIcon(act.motorEncendido)}
+                              alt="motor"
+                              width={16}
+                              height={16}
+                            />
+                            )
+                          </span>
+                        </div>
                       </li>
                     ))}
                 </ul>
