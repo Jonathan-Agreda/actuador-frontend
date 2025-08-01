@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌐 Actuador Frontend
 
-## Getting Started
+Interfaz web en tiempo real para el sistema de gestión de actuadores centralizados (Lora + Gateway). Esta aplicación permite monitorear y controlar remotamente múltiples dispositivos conectados mediante una arquitectura moderna con WebSockets, filtros inteligentes y visualización en mapa.
 
-First, run the development server:
+---
+
+## 🚀 Tecnologías utilizadas
+
+- [Next.js 14](https://nextjs.org/) – App Router
+- [Tailwind CSS 4](https://tailwindcss.com/)
+- [Zustand](https://zustand-demo.pmnd.rs/) – manejo de estado global
+- [TanStack Query](https://tanstack.com/query) – fetching de datos y caché
+- [Leaflet](https://leafletjs.com/) – visualización de dispositivos en mapa
+- [html2canvas](https://html2canvas.hertzen.com/) + [jsPDF](https://github.com/parallax/jsPDF) – generación de carnets con QR
+- [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) – actualización en tiempo real
+
+---
+
+## ⚙️ Instalación local
 
 ```bash
+git clone https://github.com/tu-usuario/actuador-frontend.git
+cd actuador-frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Accede desde: [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔧 Variables de entorno
 
-## Learn More
+Crea un archivo `.env.local` con las siguientes variables:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+NEXT_PUBLIC_API_WS_URL=http://localhost:4000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🧩 Estructura del proyecto
 
-## Deploy on Vercel
+```
+/app                # Rutas Next.js
+/components         # Componentes reutilizables
+/hooks              # Custom hooks (React Query, filtros, etc.)
+/lib                # Config global (Axios, WebSocket, etc.)
+/types              # Tipos globales (TypeScript)
+/utils              # Funciones utilitarias (íconos, formateo, etc.)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📦 Funcionalidades
+
+- 🔍 Filtros por estado (Lora, Gateway, motor)
+- 🧠 Vista en modo árbol o tarjetas
+- 📍 Mapa con geolocalización de actuadores
+- 🧰 Control ON/OFF y reinicio de Gateways
+- 🧑‍🤝‍🧑 Agrupación por grupos de actuadores
+- 🕓 Programación de encendido/apagado
+- 📄 Exportación de carnet QR como PDF o imagen
+- 🔔 Alertas por Gateway caído (sonido, vibración, notificación)
+
+---
+
+## 📦 Backend relacionado
+
+Este frontend se comunica con el backend:  
+👉 [`actuador-backend`](https://github.com/tu-usuario/actuador-backend)
+
+---
+
+## 📝 Licencia
+
+Este proyecto está bajo la licencia MIT. Puedes modificarlo y reutilizarlo libremente.
