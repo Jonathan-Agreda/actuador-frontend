@@ -30,6 +30,12 @@ export default function DashboardPage() {
   const [estadoGateway, setEstadoGateway] = useState("");
   const [motorEncendido, setMotorEncendido] = useState("");
 
+  // Toggle de modo de vista
+  const [modoArbol, setModoArbol] = useState(false);
+  const [loraSeleccionado, setLoraSeleccionado] = useState<Actuador | null>(
+    null
+  );
+
   useEffect(() => {
     const fetchActuadores = async () => {
       try {
@@ -47,24 +53,37 @@ export default function DashboardPage() {
 
   useEffect(() => {
     socket.on("estado-actuadores", (data: Actuador[]) => {
-      setActuadores((prev) =>
-        prev.map((act) => {
+      setActuadores((prev) => {
+        const actualizados = prev.map((act) => {
           const nuevo = data.find((a) => a.id === act.id);
           return nuevo ? { ...act, ...nuevo } : act;
-        })
-      );
+        });
+
+        // ✅ si hay un Lora seleccionado, sincronízalo también
+        if (loraSeleccionado) {
+          const actualizado = actualizados.find(
+            (a) => a.id === loraSeleccionado.id
+          );
+          if (actualizado) setLoraSeleccionado(actualizado);
+        }
+
+        return actualizados;
+      });
     });
+
     return () => {
       socket.off("estado-actuadores");
     };
-  }, []);
+  }, [loraSeleccionado]);
 
   const handleAccion = async (
     id: string,
     tipo: "encender" | "apagar" | "reiniciar"
   ) => {
-    const lora = actuadores.find((a) => a.id === id);
-    const alias = lora?.alias ?? "Lora";
+    // ✅ obtiene el alias directamente de loraSeleccionado si está en modo árbol
+    const alias = modoArbol
+      ? loraSeleccionado?.alias ?? "Lora"
+      : actuadores.find((a) => a.id === id)?.alias ?? "Lora";
 
     setLoadingId(id);
     try {
@@ -134,69 +153,145 @@ export default function DashboardPage() {
         <div className="lg:w-1/2 flex flex-col gap-4 overflow-y-auto max-h-screen pr-2">
           <h1 className="text-2xl font-bold">Loras disponibles</h1>
 
-          {/* Filtros */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <input
-              type="text"
-              placeholder="🔍 Buscar por alias..."
-              value={busquedaAlias}
-              onChange={(e) => setBusquedaAlias(e.target.value)}
-              className="input input-bordered w-full"
-            />
-
-            <select
-              value={estadoLora}
-              onChange={(e) => setEstadoLora(e.target.value)}
-              className="select select-bordered w-full"
-            >
-              <option value="">Estado Lora (Todos)</option>
-              <option value="online">Online</option>
-              <option value="offline">Offline</option>
-            </select>
-
-            <select
-              value={estadoGateway}
-              onChange={(e) => setEstadoGateway(e.target.value)}
-              className="select select-bordered w-full"
-            >
-              <option value="">Estado Gateway (Todos)</option>
-              <option value="ok">OK</option>
-              <option value="caido">Caído</option>
-              <option value="reiniciando">Reiniciando</option>
-            </select>
-
-            <select
-              value={motorEncendido}
-              onChange={(e) => setMotorEncendido(e.target.value)}
-              className="select select-bordered w-full"
-            >
-              <option value="">Motor (Todos)</option>
-              <option value="on">Encendido</option>
-              <option value="off">Apagado</option>
-            </select>
+          {/* Toggle de modo de vista */}
+          <div className="flex items-center gap-4 mt-2">
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <input
+                type="checkbox"
+                checked={modoArbol}
+                onChange={() => setModoArbol(!modoArbol)}
+                className="toggle toggle-sm"
+              />
+              Ver en modo árbol
+            </label>
           </div>
 
-          {/* LoraCards filtrados */}
-          {actuadoresFiltrados.map((act) => (
-            <LoraCard
-              key={act.id}
-              id={act.id}
-              alias={act.alias}
-              ip={act.ip}
-              estado={act.estado}
-              motorEncendido={act.motorEncendido}
-              relays={act.relays}
-              gateway={{
-                alias: act.gateway?.alias ?? "N/A",
-                ip: act.gateway?.ip ?? "0.0.0.0",
-                estado: act.estadoGateway ?? "caido",
-              }}
-              onEncenderMotor={() => handleAccion(act.id, "encender")}
-              onApagarMotor={() => handleAccion(act.id, "apagar")}
-              onReiniciarGateway={() => handleAccion(act.id, "reiniciar")}
-              loading={loadingId === act.id}
-            />
-          ))}
+          {/* Filtros si NO estamos en modo árbol */}
+          {!modoArbol && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <input
+                type="text"
+                placeholder="🔍 Buscar por alias..."
+                value={busquedaAlias}
+                onChange={(e) => setBusquedaAlias(e.target.value)}
+                className="input input-bordered w-full"
+              />
+
+              <select
+                value={estadoLora}
+                onChange={(e) => setEstadoLora(e.target.value)}
+                className="select select-bordered w-full"
+              >
+                <option value="">Estado Lora (Todos)</option>
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+              </select>
+
+              <select
+                value={estadoGateway}
+                onChange={(e) => setEstadoGateway(e.target.value)}
+                className="select select-bordered w-full"
+              >
+                <option value="">Estado Gateway (Todos)</option>
+                <option value="ok">OK</option>
+                <option value="caido">Caído</option>
+                <option value="reiniciando">Reiniciando</option>
+              </select>
+
+              <select
+                value={motorEncendido}
+                onChange={(e) => setMotorEncendido(e.target.value)}
+                className="select select-bordered w-full"
+              >
+                <option value="">Motor (Todos)</option>
+                <option value="on">Encendido</option>
+                <option value="off">Apagado</option>
+              </select>
+            </div>
+          )}
+
+          {/* Vista árbol o vista de tarjetas */}
+          {modoArbol ? (
+            <>
+              <div className="mt-2">
+                <h2 className="text-md font-semibold mb-1">Lista de Loras</h2>
+                <ul className="border rounded p-2 max-h-64 overflow-y-auto">
+                  {actuadores
+                    .slice()
+                    .sort((a, b) => a.alias.localeCompare(b.alias))
+                    .map((act) => (
+                      <li
+                        key={act.id}
+                        className={`px-2 py-1 cursor-pointer rounded hover:bg-gray-100 ${
+                          loraSeleccionado?.id === act.id
+                            ? "bg-blue-100 font-semibold"
+                            : ""
+                        }`}
+                        onClick={() => setLoraSeleccionado(act)}
+                      >
+                        <span
+                          className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                            act.estado === "online"
+                              ? "bg-green-500"
+                              : "bg-red-500"
+                          }`}
+                        ></span>
+                        {act.alias}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+
+              {loraSeleccionado && (
+                <div className="mt-4">
+                  <LoraCard
+                    id={loraSeleccionado.id}
+                    alias={loraSeleccionado.alias}
+                    ip={loraSeleccionado.ip}
+                    estado={loraSeleccionado.estado}
+                    motorEncendido={loraSeleccionado.motorEncendido}
+                    relays={loraSeleccionado.relays}
+                    gateway={{
+                      alias: loraSeleccionado.gateway?.alias ?? "N/A",
+                      ip: loraSeleccionado.gateway?.ip ?? "0.0.0.0",
+                      estado: loraSeleccionado.estadoGateway ?? "caido",
+                    }}
+                    onEncenderMotor={() =>
+                      handleAccion(loraSeleccionado.id, "encender")
+                    }
+                    onApagarMotor={() =>
+                      handleAccion(loraSeleccionado.id, "apagar")
+                    }
+                    onReiniciarGateway={() =>
+                      handleAccion(loraSeleccionado.id, "reiniciar")
+                    }
+                    loading={loadingId === loraSeleccionado.id}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            actuadoresFiltrados.map((act) => (
+              <LoraCard
+                key={act.id}
+                id={act.id}
+                alias={act.alias}
+                ip={act.ip}
+                estado={act.estado}
+                motorEncendido={act.motorEncendido}
+                relays={act.relays}
+                gateway={{
+                  alias: act.gateway?.alias ?? "N/A",
+                  ip: act.gateway?.ip ?? "0.0.0.0",
+                  estado: act.estadoGateway ?? "caido",
+                }}
+                onEncenderMotor={() => handleAccion(act.id, "encender")}
+                onApagarMotor={() => handleAccion(act.id, "apagar")}
+                onReiniciarGateway={() => handleAccion(act.id, "reiniciar")}
+                loading={loadingId === act.id}
+              />
+            ))
+          )}
 
           <h2 className="text-xl font-semibold mt-4">Grupos creados</h2>
 
