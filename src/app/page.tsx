@@ -214,11 +214,10 @@ export default function DashboardPage() {
 
           {/* Vista árbol o vista de tarjetas */}
           {modoArbol ? (
-            <>
-              <div className="mt-2">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Panel izquierdo: Árbol de Loras + Filtro */}
+              <div className="lg:w-1/2">
                 <h2 className="text-md font-semibold mb-1">Lista de Loras</h2>
-
-                {/* 🔍 Filtro visible también en modo árbol */}
                 <input
                   type="text"
                   placeholder="Buscar por alias..."
@@ -227,7 +226,7 @@ export default function DashboardPage() {
                   className="input input-bordered w-full mb-2"
                 />
 
-                <ul className="border rounded p-2 max-h-64 overflow-y-auto">
+                <ul className="border rounded p-2 max-h-[450px] overflow-y-auto">
                   {actuadores
                     .filter((act) =>
                       act.alias
@@ -251,7 +250,6 @@ export default function DashboardPage() {
                             alt="lora"
                             width={20}
                             height={20}
-                            className="shrink-0"
                           />
                           <span>{act.alias}</span>
                           <span className="text-xs text-gray-500 flex items-center gap-1 ml-2">
@@ -276,8 +274,9 @@ export default function DashboardPage() {
                 </ul>
               </div>
 
-              {loraSeleccionado && (
-                <div className="mt-4">
+              {/* Panel derecho: LoraCard */}
+              <div className="lg:w-1/2">
+                {loraSeleccionado && (
                   <LoraCard
                     id={loraSeleccionado.id}
                     alias={loraSeleccionado.alias}
@@ -301,30 +300,32 @@ export default function DashboardPage() {
                     }
                     loading={loadingId === loraSeleccionado.id}
                   />
-                </div>
-              )}
-            </>
+                )}
+              </div>
+            </div>
           ) : (
-            actuadoresFiltrados.map((act) => (
-              <LoraCard
-                key={act.id}
-                id={act.id}
-                alias={act.alias}
-                ip={act.ip}
-                estado={act.estado}
-                motorEncendido={act.motorEncendido}
-                relays={act.relays}
-                gateway={{
-                  alias: act.gateway?.alias ?? "N/A",
-                  ip: act.gateway?.ip ?? "0.0.0.0",
-                  estado: act.estadoGateway ?? "caido",
-                }}
-                onEncenderMotor={() => handleAccion(act.id, "encender")}
-                onApagarMotor={() => handleAccion(act.id, "apagar")}
-                onReiniciarGateway={() => handleAccion(act.id, "reiniciar")}
-                loading={loadingId === act.id}
-              />
-            ))
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {actuadoresFiltrados.map((act) => (
+                <LoraCard
+                  key={act.id}
+                  id={act.id}
+                  alias={act.alias}
+                  ip={act.ip}
+                  estado={act.estado}
+                  motorEncendido={act.motorEncendido}
+                  relays={act.relays}
+                  gateway={{
+                    alias: act.gateway?.alias ?? "N/A",
+                    ip: act.gateway?.ip ?? "0.0.0.0",
+                    estado: act.estadoGateway ?? "caido",
+                  }}
+                  onEncenderMotor={() => handleAccion(act.id, "encender")}
+                  onApagarMotor={() => handleAccion(act.id, "apagar")}
+                  onReiniciarGateway={() => handleAccion(act.id, "reiniciar")}
+                  loading={loadingId === act.id}
+                />
+              ))}
+            </div>
           )}
 
           <h2 className="text-xl font-semibold mt-4">Grupos creados</h2>
@@ -344,16 +345,18 @@ export default function DashboardPage() {
             gruposExistentes={grupos ?? []}
           />
 
-          {grupos
-            ?.slice()
-            .sort((a: Grupo, b: Grupo) => a.nombre.localeCompare(b.nombre))
-            .map((grupo: Grupo) => (
-              <GrupoCard
-                key={grupo.id}
-                grupo={grupo}
-                actuadoresActualizados={actuadores}
-              />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
+            {grupos
+              ?.slice()
+              .sort((a: Grupo, b: Grupo) => a.nombre.localeCompare(b.nombre))
+              .map((grupo: Grupo) => (
+                <GrupoCard
+                  key={grupo.id}
+                  grupo={grupo}
+                  actuadoresActualizados={actuadores}
+                />
+              ))}
+          </div>
         </div>
 
         <div className="lg:w-1/2 w-full h-[300px] lg:h-auto">
