@@ -3,7 +3,7 @@
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { useEliminarGrupo } from "@/hooks/useEliminarGrupo";
-import { Trash2 } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import { useState } from "react";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { toast } from "sonner";
@@ -30,11 +30,14 @@ export default function GrupoCard({
 }: GrupoCardProps) {
   const [showDialog, setShowDialog] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [programacionAEliminar, setProgramacionAEliminar] = useState<
+    string | null
+  >(null);
+
   const queryClient = useQueryClient();
 
-  const { data: programaciones } = useProgramacionesGrupo(grupo.id);
+  const { data: programaciones = [] } = useProgramacionesGrupo(grupo.id);
   const { mutate: eliminarGrupo, isPending } = useEliminarGrupo();
-
   const eliminarProgramacion = useEliminarProgramacion();
   const toggleProgramacion = useToggleProgramacion();
 
@@ -50,9 +53,7 @@ export default function GrupoCard({
           err?.response?.data?.message ||
           err?.message ||
           "Error inesperado al eliminar el grupo";
-
         toast.error(mensaje);
-        console.error("Error al eliminar grupo:", error);
       },
     });
   };
@@ -190,32 +191,20 @@ export default function GrupoCard({
                           toast.error("Error al cambiar el estado");
                         }
                       }}
-                      className={`text-xs px-2 py-1 rounded ${
-                        p.activo ? "bg-yellow-500" : "bg-green-600"
+                      className={`text-xs px-2 py-1 rounded font-medium ${
+                        p.activo ? "bg-amber-700" : "bg-green-700"
                       } text-white`}
                     >
                       {p.activo ? "Desactivar" : "Activar"}
                     </button>
                     <button
-                      onClick={async () => {
-                        if (!confirm("¿Eliminar esta programación?")) return;
-                        try {
-                          await eliminarProgramacion.mutateAsync(p.id);
-                          toast.success("Programación eliminada");
-                          queryClient.invalidateQueries({
-                            queryKey: ["programaciones-grupo", grupo.id],
-                          });
-                        } catch {
-                          toast.error("Error al eliminar");
-                        }
-                      }}
-                      className="text-xs px-2 py-1 rounded bg-red-600 text-white"
+                      onClick={() => setProgramacionAEliminar(p.id)}
+                      className="text-xs px-2 py-1 rounded bg-red-600 text-white font-medium"
                     >
                       Eliminar
                     </button>
                   </div>
                 </div>
-
                 <div className="text-xs mt-1">
                   Estado:{" "}
                   <span
@@ -229,12 +218,12 @@ export default function GrupoCard({
           </ul>
         )}
         <Button
-          variant="secondary"
+          variant="default"
           size="sm"
-          className="mt-2"
+          className="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
           onClick={() => setShowModal(true)}
         >
-          Programar motor
+          <Plus size={16} className="mr-1" /> Programar motor
         </Button>
       </div>
 
@@ -246,24 +235,23 @@ export default function GrupoCard({
             className="bg-green-600 hover:bg-green-700 text-white"
             onClick={() => handleAccionGrupal("encender")}
           >
-            Encender Motor
+            Encender motor
           </Button>
           <Button
             size="sm"
             className="bg-yellow-500 hover:bg-yellow-600 text-white"
             onClick={() => handleAccionGrupal("apagar")}
           >
-            Apagar Motor
+            Apagar motor
           </Button>
           <Button
             size="sm"
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-amber-500 hover:bg-amber-600 text-white"
             onClick={() => handleAccionGrupal("reiniciar")}
           >
             Reiniciar GW
           </Button>
         </div>
-
         <div className="ml-auto">
           <Button
             size="sm"
@@ -277,7 +265,7 @@ export default function GrupoCard({
         </div>
       </div>
 
-      {/* Modal Programación */}
+      {/* Modales */}
       <CrearProgramacionModal
         grupoId={grupo.id}
         isOpen={showModal}
@@ -289,7 +277,6 @@ export default function GrupoCard({
         }}
       />
 
-      {/* Confirmación */}
       <ConfirmDialog
         open={showDialog}
         onClose={() => setShowDialog(false)}
@@ -298,6 +285,29 @@ export default function GrupoCard({
         description="Esta acción no se puede deshacer."
         confirmText={isPending ? "Eliminando..." : "Eliminar grupo"}
         isLoading={isPending}
+      />
+
+      <ConfirmDialog
+        open={!!programacionAEliminar}
+        onClose={() => setProgramacionAEliminar(null)}
+        onConfirm={async () => {
+          if (!programacionAEliminar) return;
+          try {
+            await eliminarProgramacion.mutateAsync(programacionAEliminar);
+            toast.success("Programación eliminada");
+            queryClient.invalidateQueries({
+              queryKey: ["programaciones-grupo", grupo.id],
+            });
+          } catch {
+            toast.error("Error al eliminar");
+          } finally {
+            setProgramacionAEliminar(null);
+          }
+        }}
+        title="¿Eliminar programación?"
+        description="Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        isLoading={eliminarProgramacion.isPending}
       />
     </div>
   );

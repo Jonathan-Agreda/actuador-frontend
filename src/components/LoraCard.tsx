@@ -149,7 +149,7 @@ export default function LoraCard({
                 loading
                   ? "bg-gray-400 cursor-not-allowed"
                   : motorEncendido
-                  ? "bg-red-600 hover:bg-red-700"
+                  ? "bg-yellow-500 hover:bg-yellow-600"
                   : "bg-green-600 hover:bg-green-700"
               }`}
             >
@@ -169,7 +169,7 @@ export default function LoraCard({
               <button
                 onClick={onReiniciarGateway}
                 disabled={loading}
-                className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2"
+                className="px-3 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold flex items-center gap-2"
               >
                 {loading ? (
                   <>
