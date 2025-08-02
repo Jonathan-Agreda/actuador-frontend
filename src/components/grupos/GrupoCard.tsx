@@ -12,7 +12,7 @@ import { Grupo } from "@/types/grupo";
 import { ApiError } from "@/types/types";
 import { ejecutarAccionGrupal } from "@/services/loraService";
 import Image from "next/image";
-import { getGatewayIcon } from "@/utils/iconUtils";
+import { getGatewayIcon, getMotorIcon } from "@/utils/iconUtils";
 
 interface GrupoCardProps {
   grupo: Grupo;
@@ -49,7 +49,6 @@ export default function GrupoCard({
     accion: "encender" | "apagar" | "reiniciar"
   ) => {
     const idsLoras = grupo.GrupoActuador.map((ga) => ga.actuador.id);
-
     const aliasMap = grupo.GrupoActuador.reduce(
       (acc, ga) => ({ ...acc, [ga.actuador.id]: ga.actuador.alias }),
       {} as Record<string, string>
@@ -88,6 +87,7 @@ export default function GrupoCard({
 
   return (
     <div className="bg-gray-900 text-white border border-gray-700 rounded-xl p-4 shadow-lg space-y-4">
+      {/* Cabecera: nombre y cantidad */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold">{grupo.nombre}</h3>
         <span className="text-sm text-gray-400">
@@ -95,6 +95,7 @@ export default function GrupoCard({
         </span>
       </div>
 
+      {/* Loras */}
       <div className="flex flex-wrap gap-2">
         {grupo.GrupoActuador.map(({ actuador }) => {
           const actualizado = getEstadoLora(actuador.id);
@@ -103,6 +104,7 @@ export default function GrupoCard({
             actualizado?.estadoGateway || actuador.estadoGateway;
           const aliasGateway =
             actualizado?.gateway?.alias || actuador.gateway?.alias || "GW";
+          const motor = actualizado?.motorEncendido || actuador.motorEncendido;
 
           return (
             <div
@@ -116,33 +118,42 @@ export default function GrupoCard({
               </Badge>
               <Image
                 src={getGatewayIcon(estadoGateway)}
-                alt="Estado GW"
+                alt="GW"
                 width={16}
                 height={16}
                 title={`${aliasGateway} - ${estadoGateway}`}
+              />
+              <Image
+                src={getMotorIcon(motor)}
+                alt="Motor"
+                width={16}
+                height={16}
+                title={`Motor ${motor ? "encendido" : "apagado"}`}
               />
             </div>
           );
         })}
       </div>
 
-      <div className="flex justify-between items-center pt-2 flex-wrap gap-y-2">
+      {/* Botones de acción y eliminar */}
+      <div className="flex flex-wrap items-center pt-2 gap-2">
         <div className="flex gap-2 flex-wrap">
           <Button
+            size="sm"
             className="bg-green-600 hover:bg-green-700 text-white"
             onClick={() => handleAccionGrupal("encender")}
           >
             Encender Motor
           </Button>
-
           <Button
+            size="sm"
             className="bg-yellow-500 hover:bg-yellow-600 text-white"
             onClick={() => handleAccionGrupal("apagar")}
           >
             Apagar Motor
           </Button>
-
           <Button
+            size="sm"
             className="bg-red-600 hover:bg-red-700 text-white"
             onClick={() => handleAccionGrupal("reiniciar")}
           >
@@ -150,15 +161,20 @@ export default function GrupoCard({
           </Button>
         </div>
 
-        <Button
-          className="bg-red-700 hover:bg-red-800 text-white flex items-center gap-2"
-          onClick={() => setShowDialog(true)}
-        >
-          <Trash2 size={16} />
-          Eliminar
-        </Button>
+        <div className="ml-auto">
+          <Button
+            size="sm"
+            variant="destructive"
+            className="flex items-center gap-1"
+            onClick={() => setShowDialog(true)}
+          >
+            <Trash2 size={14} />
+            Eliminar
+          </Button>
+        </div>
       </div>
 
+      {/* Confirmación */}
       <ConfirmDialog
         open={showDialog}
         onClose={() => setShowDialog(false)}
