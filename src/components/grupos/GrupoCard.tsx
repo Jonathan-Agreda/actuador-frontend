@@ -13,6 +13,11 @@ import { ApiError } from "@/types/types";
 import { ejecutarAccionGrupal } from "@/services/loraService";
 import Image from "next/image";
 import { getGatewayIcon, getMotorIcon } from "@/utils/iconUtils";
+import { useProgramacionesGrupo } from "@/hooks/useProgramacionesGrupo";
+import CrearProgramacionModal from "./CrearProgramacionModal";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEliminarProgramacion } from "@/hooks/useEliminarProgramacion";
+import { useToggleProgramacion } from "@/hooks/useToggleProgramacion";
 
 interface GrupoCardProps {
   grupo: Grupo;
@@ -24,7 +29,14 @@ export default function GrupoCard({
   actuadoresActualizados,
 }: GrupoCardProps) {
   const [showDialog, setShowDialog] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: programaciones } = useProgramacionesGrupo(grupo.id);
   const { mutate: eliminarGrupo, isPending } = useEliminarGrupo();
+
+  const eliminarProgramacion = useEliminarProgramacion();
+  const toggleProgramacion = useToggleProgramacion();
 
   const getEstadoLora = (id: string) =>
     actuadoresActualizados.find((a) => a.id === id);
@@ -87,7 +99,7 @@ export default function GrupoCard({
 
   return (
     <div className="bg-gray-900 text-white border border-gray-700 rounded-xl p-4 shadow-lg space-y-4">
-      {/* Cabecera: nombre y cantidad */}
+      {/* Cabecera */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold">{grupo.nombre}</h3>
         <span className="text-sm text-gray-400">
@@ -104,7 +116,7 @@ export default function GrupoCard({
             actualizado?.estadoGateway || actuador.estadoGateway;
           const aliasGateway =
             actualizado?.gateway?.alias || actuador.gateway?.alias || "GW";
-          const motor = actualizado?.motorEncendido || actuador.motorEncendido;
+          const motor = actualizado?.motorEncendido ?? actuador.motorEncendido;
 
           return (
             <div
@@ -135,7 +147,98 @@ export default function GrupoCard({
         })}
       </div>
 
-      {/* Botones de acción y eliminar */}
+      {/* Programaciones */}
+      <div>
+        <h4 className="text-sm font-semibold">Programaciones</h4>
+        {programaciones.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No hay programaciones</p>
+        ) : (
+          <ul className="space-y-1 text-sm mt-1">
+            {programaciones.map((p) => (
+              <li
+                key={p.id}
+                className="border rounded-md p-2 bg-white text-gray-900 space-y-1"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <strong>
+                      {p.horaInicio} - {p.horaFin}
+                    </strong>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {p.frecuencia === "dias_especificos"
+                        ? p.dias.join(", ")
+                        : p.frecuencia}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await toggleProgramacion.mutateAsync({
+                            id: p.id,
+                            activo: !p.activo,
+                          });
+                          toast.success(
+                            `Programación ${
+                              p.activo ? "desactivada" : "activada"
+                            }`
+                          );
+                          queryClient.invalidateQueries({
+                            queryKey: ["programaciones-grupo", grupo.id],
+                          });
+                        } catch {
+                          toast.error("Error al cambiar el estado");
+                        }
+                      }}
+                      className={`text-xs px-2 py-1 rounded ${
+                        p.activo ? "bg-yellow-500" : "bg-green-600"
+                      } text-white`}
+                    >
+                      {p.activo ? "Desactivar" : "Activar"}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm("¿Eliminar esta programación?")) return;
+                        try {
+                          await eliminarProgramacion.mutateAsync(p.id);
+                          toast.success("Programación eliminada");
+                          queryClient.invalidateQueries({
+                            queryKey: ["programaciones-grupo", grupo.id],
+                          });
+                        } catch {
+                          toast.error("Error al eliminar");
+                        }
+                      }}
+                      className="text-xs px-2 py-1 rounded bg-red-600 text-white"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-xs mt-1">
+                  Estado:{" "}
+                  <span
+                    className={p.activo ? "text-green-600" : "text-red-500"}
+                  >
+                    {p.activo ? "Activo" : "Inactivo"}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-2"
+          onClick={() => setShowModal(true)}
+        >
+          Programar motor
+        </Button>
+      </div>
+
+      {/* Botones de acción */}
       <div className="flex flex-wrap items-center pt-2 gap-2">
         <div className="flex gap-2 flex-wrap">
           <Button
@@ -173,6 +276,18 @@ export default function GrupoCard({
           </Button>
         </div>
       </div>
+
+      {/* Modal Programación */}
+      <CrearProgramacionModal
+        grupoId={grupo.id}
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          queryClient.invalidateQueries({
+            queryKey: ["programaciones-grupo", grupo.id],
+          });
+        }}
+      />
 
       {/* Confirmación */}
       <ConfirmDialog
