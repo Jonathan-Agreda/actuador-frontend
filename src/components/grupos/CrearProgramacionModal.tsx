@@ -47,6 +47,11 @@ export default function CrearProgramacionModal({
       return;
     }
 
+    if (horaInicio >= horaFin) {
+      toast.error("La hora de inicio debe ser anterior a la hora de fin");
+      return;
+    }
+
     if (frecuencia === "dias_especificos" && dias.length === 0) {
       toast.error("Selecciona al menos un día");
       return;
