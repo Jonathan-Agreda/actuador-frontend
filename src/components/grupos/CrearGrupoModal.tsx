@@ -27,6 +27,9 @@ export default function CrearGrupoModal({
   const [nombre, setNombre] = useState("");
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const { mutateAsync: crearGrupo, isPending } = useCrearGrupo();
+  const lorasOrdenadas = [...loras].sort((a, b) =>
+    a.alias.localeCompare(b.alias)
+  );
 
   const toggleLora = (id: string) => {
     setSeleccionados((prev) =>
@@ -94,7 +97,7 @@ export default function CrearGrupoModal({
               Seleccionar todos
             </label>
 
-            {loras.map((lora) => (
+            {lorasOrdenadas.map((lora) => (
               <label
                 key={lora.id}
                 className="flex items-center gap-2 text-sm pl-1"
