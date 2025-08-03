@@ -13,7 +13,7 @@ interface CrearGrupoModalProps {
   open: boolean;
   onClose: () => void;
   empresaId: string;
-  loras: Pick<Actuador, "id" | "alias">[]; // ✅ solo lo necesario
+  loras: Pick<Actuador, "id" | "alias">[];
   gruposExistentes: Grupo[];
 }
 
@@ -27,6 +27,7 @@ export default function CrearGrupoModal({
   const [nombre, setNombre] = useState("");
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const { mutateAsync: crearGrupo, isPending } = useCrearGrupo();
+
   const lorasOrdenadas = [...loras].sort((a, b) =>
     a.alias.localeCompare(b.alias)
   );
@@ -67,11 +68,24 @@ export default function CrearGrupoModal({
       return;
     }
 
-    await crearGrupo({ nombre: nombreTrim, empresaId, loraIds: seleccionados });
+    try {
+      await crearGrupo({
+        nombre: nombreTrim,
+        empresaId,
+        loraIds: seleccionados,
+      });
 
-    setNombre("");
-    setSeleccionados([]);
-    onClose();
+      toast.success("Grupo creado correctamente");
+      setNombre("");
+      setSeleccionados([]);
+      onClose();
+    } catch (error: any) {
+      const mensaje =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Error inesperado al crear el grupo";
+      toast.error(mensaje);
+    }
   };
 
   return (
