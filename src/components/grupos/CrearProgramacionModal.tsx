@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Dialog } from "@headlessui/react";
 import { toast } from "sonner";
-import axios from "@/lib/axios";
+import axiosInstance from "@/lib/axios"; // instancia personalizada
+import axios from "axios"; // librería original para isAxiosError
 
 interface Props {
   grupoId: string;
@@ -35,11 +36,9 @@ export default function CrearProgramacionModal({
   const [loading, setLoading] = useState(false);
 
   const toggleDia = (dia: string) => {
-    if (dias.includes(dia)) {
-      setDias(dias.filter((d) => d !== dia));
-    } else {
-      setDias([...dias, dia]);
-    }
+    setDias((prev) =>
+      prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia]
+    );
   };
 
   const handleSubmit = async () => {
@@ -55,7 +54,7 @@ export default function CrearProgramacionModal({
 
     setLoading(true);
     try {
-      await axios.post("/programacion-grupo", {
+      await axiosInstance.post("/programacion-grupo", {
         grupoId,
         horaInicio,
         horaFin,
@@ -68,7 +67,24 @@ export default function CrearProgramacionModal({
       onCreated?.();
     } catch (error) {
       console.error(error);
-      toast.error("Error al crear la programación");
+
+      if (axios.isAxiosError(error)) {
+        const respuesta = error.response?.data;
+
+        let mensaje = "Error al crear la programación";
+
+        if (respuesta) {
+          if (Array.isArray(respuesta.message)) {
+            mensaje = respuesta.message.join(", ");
+          } else if (typeof respuesta.message === "string") {
+            mensaje = respuesta.message;
+          }
+        }
+
+        toast.error(mensaje);
+      } else {
+        toast.error("Error inesperado");
+      }
     } finally {
       setLoading(false);
     }
