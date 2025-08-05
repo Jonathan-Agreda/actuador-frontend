@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
 import { toast } from "sonner";
 import axiosInstance from "@/lib/axios"; // instancia personalizada
@@ -46,6 +46,25 @@ export default function CrearProgramacionModal({
   const [frecuencia, setFrecuencia] = useState("diario");
   const [dias, setDias] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const ahora = new Date();
+      const horas = ahora.getHours().toString().padStart(2, "0");
+      const minutos = ahora.getMinutes().toString().padStart(2, "0");
+
+      const horaInicioActual = `${horas}:${minutos}`;
+
+      ahora.setMinutes(ahora.getMinutes() + 5);
+      const horasFin = ahora.getHours().toString().padStart(2, "0");
+      const minutosFin = ahora.getMinutes().toString().padStart(2, "0");
+
+      const horaFinActual = `${horasFin}:${minutosFin}`;
+
+      setHoraInicio(horaInicioActual);
+      setHoraFin(horaFinActual);
+    }
+  }, [isOpen]);
 
   const toggleDia = (dia: string) => {
     setDias((prev) =>
