@@ -29,8 +29,20 @@ export default function CrearProgramacionModal({
   onClose,
   onCreated,
 }: Props) {
-  const [horaInicio, setHoraInicio] = useState("06:00");
-  const [horaFin, setHoraFin] = useState("18:00");
+  const [horaInicio, setHoraInicio] = useState(() => {
+    const ahora = new Date();
+    const horas = ahora.getHours().toString().padStart(2, "0");
+    const minutos = ahora.getMinutes().toString().padStart(2, "0");
+    return `${horas}:${minutos}`;
+  });
+  const [horaFin, setHoraFin] = useState(() => {
+    const ahora = new Date();
+    ahora.setMinutes(ahora.getMinutes() + 5);
+    const horas = ahora.getHours().toString().padStart(2, "0");
+    const minutos = ahora.getMinutes().toString().padStart(2, "0");
+    return `${horas}:${minutos}`;
+  });
+
   const [frecuencia, setFrecuencia] = useState("diario");
   const [dias, setDias] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
