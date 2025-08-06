@@ -165,7 +165,7 @@ export default function LoraCard({
               )}
             </button>
 
-            {gateway.estado !== "ok" && (
+            {gateway.estado === "caido" && (
               <button
                 onClick={onReiniciarGateway}
                 disabled={loading}
