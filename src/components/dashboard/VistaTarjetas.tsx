@@ -6,14 +6,12 @@ import LoraCard from "../LoraCard";
 interface Props {
   actuadores: Actuador[];
   handleAccion: (id: string, tipo: "encender" | "apagar" | "reiniciar") => void;
-  loadingId: string | null; // dejar por compatibilidad si se usa en otro lado
   accionesPendientes: Record<string, string | null>; // 👈 nuevo prop
 }
 
 export default function VistaTarjetas({
   actuadores,
   handleAccion,
-  loadingId,
   accionesPendientes,
 }: Props) {
   return (

@@ -6,7 +6,6 @@ import socket from "@/lib/socket";
 import { useGrupos } from "@/hooks/useGrupos";
 import { Actuador } from "@/types/actuador";
 import { toast } from "sonner";
-import { Grupo } from "@/types/grupo";
 import CrearGrupoModal from "@/components/grupos/CrearGrupoModal";
 import FiltrosLora from "@/components/dashboard/FiltrosLora";
 import VistaArbol from "@/components/dashboard/VistaArbol";

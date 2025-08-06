@@ -79,11 +79,17 @@ export default function CrearGrupoModal({
       setNombre("");
       setSeleccionados([]);
       onClose();
-    } catch (error: any) {
-      const mensaje =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Error inesperado al crear el grupo";
+    } catch (error: unknown) {
+      let mensaje = "Error inesperado al crear el grupo";
+
+      if (typeof error === "object" && error !== null) {
+        const e = error as {
+          response?: { data?: { message?: string } };
+          message?: string;
+        };
+        mensaje = e.response?.data?.message || e.message || mensaje;
+      }
+
       toast.error(mensaje);
     }
   };

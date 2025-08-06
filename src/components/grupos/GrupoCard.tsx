@@ -4,7 +4,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { useEliminarGrupo } from "@/hooks/useEliminarGrupo";
 import { Trash2, Plus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { toast } from "sonner";
 import { Actuador } from "@/types/actuador";
@@ -43,9 +43,6 @@ export default function GrupoCard({
   const { mutate: eliminarGrupo, isPending } = useEliminarGrupo();
   const eliminarProgramacion = useEliminarProgramacion();
   const toggleProgramacion = useToggleProgramacion();
-
-  const getEstadoLora = (id: string) =>
-    actuadoresActualizados.find((a) => a.id === id);
 
   const handleEliminar = () => {
     eliminarGrupo(grupo.id, {
@@ -103,6 +100,11 @@ export default function GrupoCard({
     }
   };
 
+  const getEstadoLora = useCallback(
+    (id: string) => actuadoresActualizados.find((a) => a.id === id),
+    [actuadoresActualizados]
+  );
+
   // ✅ Desbloquear botones grupales cuando todos los Loras cumplan el estado esperado
   useEffect(() => {
     if (!accionGrupal) return;
@@ -122,7 +124,7 @@ export default function GrupoCard({
     if (todosCumplen) {
       setAccionGrupal(null);
     }
-  }, [actuadoresActualizados, accionGrupal, grupo]);
+  }, [actuadoresActualizados, accionGrupal, grupo, getEstadoLora]);
 
   return (
     <div className="bg-gray-900 text-white border border-gray-700 rounded-xl p-4 shadow-lg space-y-4">
