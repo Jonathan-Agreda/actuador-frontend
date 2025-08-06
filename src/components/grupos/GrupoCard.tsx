@@ -4,7 +4,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { useEliminarGrupo } from "@/hooks/useEliminarGrupo";
 import { Trash2, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { toast } from "sonner";
 import { Actuador } from "@/types/actuador";
@@ -32,6 +32,9 @@ export default function GrupoCard({
   const [showModal, setShowModal] = useState(false);
   const [programacionAEliminar, setProgramacionAEliminar] = useState<
     string | null
+  >(null);
+  const [accionGrupal, setAccionGrupal] = useState<
+    "encender" | "apagar" | "reiniciar" | null
   >(null);
 
   const queryClient = useQueryClient();
@@ -68,6 +71,7 @@ export default function GrupoCard({
     );
 
     const toastId = toast.loading(`Ejecutando acción grupal: ${accion}`);
+    setAccionGrupal(accion);
 
     try {
       const { exitosas, fallidas, mensajes } = await ejecutarAccionGrupal(
@@ -95,8 +99,30 @@ export default function GrupoCard({
       toast.error(`Error general al ejecutar acción: ${accion}`, {
         id: toastId,
       });
+      setAccionGrupal(null); // desbloquear en error
     }
   };
+
+  // ✅ Desbloquear botones grupales cuando todos los Loras cumplan el estado esperado
+  useEffect(() => {
+    if (!accionGrupal) return;
+
+    const todosCumplen = grupo.GrupoActuador.every(({ actuador }) => {
+      const actualizado = getEstadoLora(actuador.id);
+      if (!actualizado) return false;
+
+      if (accionGrupal === "encender") return actualizado.motorEncendido;
+      if (accionGrupal === "apagar") return !actualizado.motorEncendido;
+      if (accionGrupal === "reiniciar")
+        return actualizado.estadoGateway === "ok";
+
+      return false;
+    });
+
+    if (todosCumplen) {
+      setAccionGrupal(null);
+    }
+  }, [actuadoresActualizados, accionGrupal, grupo]);
 
   return (
     <div className="bg-gray-900 text-white border border-gray-700 rounded-xl p-4 shadow-lg space-y-4">
@@ -232,6 +258,7 @@ export default function GrupoCard({
         <div className="flex gap-2 flex-wrap">
           <Button
             size="sm"
+            disabled={!!accionGrupal}
             className="bg-green-600 hover:bg-green-700 text-white"
             onClick={() => handleAccionGrupal("encender")}
           >
@@ -239,6 +266,7 @@ export default function GrupoCard({
           </Button>
           <Button
             size="sm"
+            disabled={!!accionGrupal}
             className="bg-yellow-500 hover:bg-yellow-600 text-white"
             onClick={() => handleAccionGrupal("apagar")}
           >
@@ -246,6 +274,7 @@ export default function GrupoCard({
           </Button>
           <Button
             size="sm"
+            disabled={!!accionGrupal}
             className="bg-amber-500 hover:bg-amber-600 text-white"
             onClick={() => handleAccionGrupal("reiniciar")}
           >

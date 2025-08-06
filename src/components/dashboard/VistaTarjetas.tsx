@@ -1,4 +1,3 @@
-// components/dashboard/VistaTarjetas.tsx
 "use client";
 
 import { Actuador } from "@/types/actuador";
@@ -7,13 +6,15 @@ import LoraCard from "../LoraCard";
 interface Props {
   actuadores: Actuador[];
   handleAccion: (id: string, tipo: "encender" | "apagar" | "reiniciar") => void;
-  loadingId: string | null;
+  loadingId: string | null; // dejar por compatibilidad si se usa en otro lado
+  accionesPendientes: Record<string, string | null>; // 👈 nuevo prop
 }
 
 export default function VistaTarjetas({
   actuadores,
   handleAccion,
   loadingId,
+  accionesPendientes,
 }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -34,7 +35,7 @@ export default function VistaTarjetas({
           onEncenderMotor={() => handleAccion(act.id, "encender")}
           onApagarMotor={() => handleAccion(act.id, "apagar")}
           onReiniciarGateway={() => handleAccion(act.id, "reiniciar")}
-          loading={loadingId === act.id}
+          loading={!!accionesPendientes[act.id]} // ✅ bloqueo real
         />
       ))}
     </div>

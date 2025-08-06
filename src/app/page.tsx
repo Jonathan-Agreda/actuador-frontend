@@ -8,8 +8,6 @@ import { Actuador } from "@/types/actuador";
 import { toast } from "sonner";
 import { Grupo } from "@/types/grupo";
 import CrearGrupoModal from "@/components/grupos/CrearGrupoModal";
-
-// Componentes nuevos
 import FiltrosLora from "@/components/dashboard/FiltrosLora";
 import VistaArbol from "@/components/dashboard/VistaArbol";
 import VistaTarjetas from "@/components/dashboard/VistaTarjetas";
@@ -25,17 +23,17 @@ const empresaId = "cb15184e-3633-4d74-9a49-85f3df111320";
 
 export default function DashboardPage() {
   const [actuadores, setActuadores] = useState<Actuador[]>([]);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [accionesPendientes, setAccionesPendientes] = useState<
+    Record<string, string | null>
+  >({});
   const [modalOpen, setModalOpen] = useState(false);
   const { data: grupos } = useGrupos();
 
-  // Filtros
   const [busquedaAlias, setBusquedaAlias] = useState("");
   const [estadoLora, setEstadoLora] = useState("");
   const [estadoGateway, setEstadoGateway] = useState("");
   const [motorEncendido, setMotorEncendido] = useState("");
 
-  // Modo de vista
   const [modoArbol, setModoArbol] = useState(false);
   const [loraSeleccionado, setLoraSeleccionado] = useState<Actuador | null>(
     null
@@ -61,7 +59,24 @@ export default function DashboardPage() {
       setActuadores((prev) => {
         const actualizados = prev.map((act) => {
           const nuevo = data.find((a) => a.id === act.id);
-          return nuevo ? { ...act, ...nuevo } : act;
+          const actualizado = nuevo ? { ...act, ...nuevo } : act;
+
+          // Desbloqueo si ya se cumplió la acción esperada
+          const accion = accionesPendientes[act.id];
+          const yaRespondio =
+            (accion === "encender" && actualizado.motorEncendido) ||
+            (accion === "apagar" && !actualizado.motorEncendido) ||
+            (accion === "reiniciar" && actualizado.estadoGateway === "ok");
+
+          if (accion && yaRespondio) {
+            setAccionesPendientes((prev) => {
+              const copy = { ...prev };
+              delete copy[act.id];
+              return copy;
+            });
+          }
+
+          return actualizado;
         });
 
         if (loraSeleccionado) {
@@ -78,7 +93,7 @@ export default function DashboardPage() {
     return () => {
       socket.off("estado-actuadores");
     };
-  }, [loraSeleccionado]);
+  }, [loraSeleccionado, accionesPendientes]);
 
   const handleAccion = async (
     id: string,
@@ -88,7 +103,8 @@ export default function DashboardPage() {
       ? loraSeleccionado?.alias ?? "Lora"
       : actuadores.find((a) => a.id === id)?.alias ?? "Lora";
 
-    setLoadingId(id);
+    setAccionesPendientes((prev) => ({ ...prev, [id]: tipo }));
+
     try {
       const endpoint =
         tipo === "encender"
@@ -114,12 +130,21 @@ export default function DashboardPage() {
         toast.success(`✅ ${alias} ${accion} correctamente`);
       } else {
         toast.error(`❌ ${data?.message || `Error al ${accion} ${alias}`}`);
+        // En caso de error, desbloquea inmediatamente
+        setAccionesPendientes((prev) => {
+          const copy = { ...prev };
+          delete copy[id];
+          return copy;
+        });
       }
     } catch (err) {
       toast.error(`❌ Error inesperado al procesar ${alias}`);
       console.error(err);
-    } finally {
-      setLoadingId(null);
+      setAccionesPendientes((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
     }
   };
 
@@ -128,7 +153,6 @@ export default function DashboardPage() {
       const coincideAlias = act.alias
         .toLowerCase()
         .includes(busquedaAlias.toLowerCase());
-
       const coincideEstadoLora = estadoLora === "" || act.estado === estadoLora;
       const coincideEstadoGateway =
         estadoGateway === "" || act.estadoGateway === estadoGateway;
@@ -154,7 +178,6 @@ export default function DashboardPage() {
         <div className="lg:w-1/2 flex flex-col gap-4 overflow-y-auto max-h-screen pr-2">
           <h1 className="text-2xl font-bold">Loras disponibles</h1>
 
-          {/* Toggle de modo de vista */}
           <div className="flex items-center gap-4 mt-2">
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input
@@ -167,7 +190,6 @@ export default function DashboardPage() {
             </label>
           </div>
 
-          {/* Filtros o vista árbol */}
           {!modoArbol ? (
             <FiltrosLora
               busquedaAlias={busquedaAlias}
@@ -187,7 +209,7 @@ export default function DashboardPage() {
               busquedaAlias={busquedaAlias}
               setBusquedaAlias={setBusquedaAlias}
               handleAccion={handleAccion}
-              loadingId={loadingId}
+              loadingId={null}
             />
           )}
 
@@ -195,7 +217,8 @@ export default function DashboardPage() {
             <VistaTarjetas
               actuadores={actuadoresFiltrados}
               handleAccion={handleAccion}
-              loadingId={loadingId}
+              loadingId={null}
+              accionesPendientes={accionesPendientes}
             />
           )}
 
