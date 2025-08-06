@@ -216,7 +216,6 @@ export default function DashboardPage() {
             <VistaTarjetas
               actuadores={actuadoresFiltrados}
               handleAccion={handleAccion}
-              loadingId={null}
               accionesPendientes={accionesPendientes}
             />
           )}
